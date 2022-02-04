@@ -116,6 +116,7 @@ Info:
 - [The Bash Hackers Wiki](https://wiki.bash-hackers.org/start)
 - [A Complete Guide on How To Use Bash Arrays](https://www.shell-tips.com/bash/arrays/)
 - https://tldp.org/LDP/abs/html/ (a bit old)
+- [Nick Sweeting's reading list](https://github.innominds.com/pirate/bash-utils#reading-list) a collection of useful bash links
 
 Tools:
 
