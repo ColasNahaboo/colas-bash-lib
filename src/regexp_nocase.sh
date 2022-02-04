@@ -15,7 +15,7 @@
 # They are pure bash, and the fastest code I could manage (no forks).
 # Also they turn of the debugging options (set -xv) during their execution
 # to avoid polluting your debug traces with their mundane code, by the
-# statements "local -; set +xv;" at their start.
+# statements "local -; set +xve;" at their start.
 
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/regexp_nocase.sh
 
@@ -31,7 +31,7 @@
 #      x[a-e[:space:][:upper:]]y ==> [xX][a-eA-E[:space:][:alpha:]][yY]
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/regexp_nocase.sh v1
 set_regexp_nocase(){
-    local -; set +xv
+    local -; set +xve
     local -n _re="$1"; _re=
     local cre="$2" c chars ce prechar postchar notchar
     local -i i len=${#2} state=0
@@ -97,7 +97,7 @@ set_regexp_nocase(){
 # E.g: rei=$(regexp_nocase "a*B"); echo "$rei" ==> "[aA]*[bB]"
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/regexp_nocase.sh v1
 regexp_nocase(){
-    local -; set +xv
+    local -; set +xve
     local _re=
     local cre="$1" c chars ce prechar postchar notchar
     local -i i len=${#1} state=0

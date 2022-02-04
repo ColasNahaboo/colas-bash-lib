@@ -16,7 +16,7 @@
 # They are pure bash, and the fastest code I could manage (no forks).
 # Also they turn of the debugging options (set -xv) during their execution
 # to avoid polluting your debug traces with their mundane code, by the
-# statements "local -; set +xv;" at their start.
+# statements "local -; set +xve;" at their start.
 
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/trim.sh
 
@@ -30,7 +30,7 @@
 # from start and end
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/trim.sh v1
 set_trim(){
-    local -; set +xv
+    local -; set +xve
     local -n _v="$1"
     _v="$2"
     _v="${2#"${_v%%[![:space:]]*}"}"
@@ -44,7 +44,7 @@ set_trim(){
 # variable argument
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/trim.sh v1
 var_trim(){
-    local -; set +xv
+    local -; set +xve
     local -n _v="$1"
     _v="${_v#"${_v%%[![:space:]]*}"}"
     _v="${_v%"${_v##*[![:space:]]}"}"
@@ -56,7 +56,7 @@ var_trim(){
 # removes the spaces from start and end of the string argument
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/trim.sh v1
 trim(){
-    local -; set +xv
+    local -; set +xve
     local v="$1"
     v="${v#"${v%%[![:space:]]*}"}"
     v="${v%"${v##*[![:space:]]}"}"

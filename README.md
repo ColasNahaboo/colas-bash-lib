@@ -24,9 +24,9 @@ Most of the files in the form `src/foo.sh` have many **versions** of the same fu
 
 All these functions duplicate their code so that they are standalone and can be **copied individually**, unless clearly specified. It is an «anti-framework» approach. It is expected you will only copy the functions and the forms you are actually using into your scripts rather than loading the whole file as is (but it can be done).
 
-The non-trivial functions start with a `local -; set +xv;`  line that removes the **trace mode** when in the function. Thus when debugging a script by `set -xv` your log is not polluted by the internal tracing of these function that can be quite long when iterating on strings for instance.
+The non-trivial functions start with a `local -; set +xve`  line that removes the **trace mode** when in the function, with nearly no speed penalty. Thus when debugging a script by `set -xv` your log is not polluted by the internal tracing of these function that can be quite long when iterating on strings for instance. It also disables the `set -e` flag, just to be sure that these functions do not trigger spurious errors if you run your script with this flag.
 
-The functions pass `shellcheck`, and can be used with `set -u`, but may not work with `set -e`. If you use `set -e`, just change the `set +xv` statement at the start of functions to `set +xve`.
+The functions pass `shellcheck`, and can be used with `set -u`.
 
 ### library files
 

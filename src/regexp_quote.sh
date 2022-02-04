@@ -18,7 +18,7 @@
 # in bash scripts to differentiate them from the "regular" code.
 # Also they turn of the debugging options (set -xv) during their execution
 # to avoid polluting your debug traces with their mundane code, by the
-# statements "local -; set +xv;" at their start.
+# statements "local -; set +xve;" at their start.
 
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/regexp_quote.sh
 
@@ -31,7 +31,7 @@
 # sets the variable in 1rst arg to the quoted 2nd arg string for regexp use,
 # quotes also / for safe use in sed /.../
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/regexp_quote.sh v1
-set_regexp_quote(){ local -; set +xv; local -n _qs="$1"
+set_regexp_quote(){ local -; set +xve; local -n _qs="$1"
   local i c len="${#2}"; _qs=; for (( i=0; i<len; i++ ));do
   c="${2:i:1}";case "$c" in [^][{}?*\|+.$\\\(\)/^])_qs+="$c";;'^')_qs+='\^';;
   *)_qs+="[$c]";;esac;done
@@ -40,7 +40,7 @@ set_regexp_quote(){ local -; set +xv; local -n _qs="$1"
 # quote the 2nd arg string for regexp use, in a case insensitive way
 # sets the results into the variable first argument
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/regexp_quote.sh v1
-set_regexp_quote_nocase(){ local -; set +xv; local -n _qs="$1"
+set_regexp_quote_nocase(){ local -; set +xve; local -n _qs="$1"
   local i c len="${#2}"; _qs=; for (( i=0; i<len; i++ ));do
   c="${2:i:1}";case "$c" in [[:alpha:]])_qs+="[${c,}${c^}]";;
   [^][{}?*\|+.$\\\(\)/^])_qs+="$c";;'^')_qs+='\^';;*)_qs+="[$c]";;
@@ -50,7 +50,7 @@ set_regexp_quote_nocase(){ local -; set +xv; local -n _qs="$1"
 # appends to the variable in 1rst arg to the quoted 2nd arg for regexp use,
 # quotes also / for safe use in sed /.../
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/regexp_quote.sh v1
-add_regexp_quote(){ local -; set +xv; local -n _qs="$1"
+add_regexp_quote(){ local -; set +xve; local -n _qs="$1"
   local i c len="${#2}";for (( i=0; i<len; i++ ));do
   c="${2:i:1}";case "$c" in [^][{}?*\|+.$\\\(\)/^])_qs+="$c";;'^')_qs+='\^';;
   *)_qs+="[$c]";;esac;done
@@ -59,7 +59,7 @@ add_regexp_quote(){ local -; set +xv; local -n _qs="$1"
 # quote the 2nd arg string for regexp use, in a case insensitive way
 # appends the results into first argument
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/regexp_quote.sh v1
-add_regexp_quote_nocase(){ local -; set +xv; local -n _qs="$1"
+add_regexp_quote_nocase(){ local -; set +xve; local -n _qs="$1"
   local i c len="${#2}"; for (( i=0; i<len; i++ ));do
   c="${2:i:1}";case "$c" in [[:alpha:]])_qs+="[${c,}${c^}]";;
   [^][{}?*\|+.$\\\(\)/^])_qs+="$c";;'^')_qs+='\^';;*)_qs+="[$c]";;
@@ -74,7 +74,7 @@ add_regexp_quote_nocase(){ local -; set +xv; local -n _qs="$1"
 # quote the argument string for regexp use, and prints them on stdout
 # quotes also / for safe use in sed /.../
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/regexp_quote.sh v1
-regexp_quote(){ local -; set +xv
+regexp_quote(){ local -; set +xve
   local i c len="${#1}" r; for (( i=0; i<len; i++ ));do
   c="${1:i:1}";case "$c" in [^][{}?*\|+.$\\\(\)/^])r+="$c";;'^')r+='\^';;
   *)r+="[$c]";;esac;done; echo "$r"
@@ -82,7 +82,7 @@ regexp_quote(){ local -; set +xv
 
 # quote the arg string for regexp use, case insensitive version
 # from: https://github.com/ColasNahaboo/colas-bash-lib/blob/main/lib/regexp_quote.sh v1
-regexp_quote_nocase(){ local -; set +xv
+regexp_quote_nocase(){ local -; set +xve
   local i r c len="${#1}";for (( i=0; i<len; i++ ));do
   c="${1:i:1}";case "$c" in [[:alpha:]])r+="[${c,}${c^}]";;
   [^][{}?*\|+.$\\\(\)/^])r+="$c";;'^')r+='\^';;*)r+="[$c]";;
