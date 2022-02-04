@@ -38,19 +38,23 @@ E.g. you can use `variable=$(regexp_nocase expression)` (functional form) or `se
 - `i2a` *{integer}*
   Returns the character (string of length 1) of ascii code *{integer}*.
   E.g: `i2a 65` returns `A`
+  
   Forms: functional, set
 
 - `a2i` *{character}*
   Returns the decimal ascii code (integer) of the character (string of length 1) parameter.
   E.g: `a2i "A"` returns `65`
+  
   Forms: functional, set
 
 - `x2a`*{hexadecimal}* Returns the character (string of length 1) of ascii code *{hexadecimal}*. 
   E.g:`x2a 41`returns`A`
+  
   Forms: functional, set
 
 - `a2x` *{character}* Returns the hexadecimal ascii code (integer) of the character (string of length 1) parameter.
   E.g: `x2i "A"` returns `41` 
+  
   Forms: functional, set
 
 #### src/regexp_nocase.sh
@@ -60,6 +64,7 @@ E.g. you can use `variable=$(regexp_nocase expression)` (functional form) or `se
   E.g: `a` becomes `[aA]`, `a.b` becomes `[aA].[bB]`, `[a-c]` becomes `[a-cA-C]`, `[[:lower:]]` becomes `[[:alpha:]]`, etc...
   
   This is very useful when you want to match a regular expression with some parts matching with case, and others not, because bash lacks [inline regexp modifiers](https://www.rexegg.com/regex-modifiers.html) such as `(?i)`.
+  
   Forms: functional, set.
 
 #### src/regexp_quote.sh
@@ -69,12 +74,14 @@ E.g. you can use `variable=$(regexp_nocase expression)` (functional form) or `se
   Takes a regular expression (as used in `[[ =~ ]]`) as only parameter, and returns a modified version that quotes (or escape) special characters to make them match literally. A bit like `fgrep`.
   E.g: `a.b` becomes `a[.]b`, `x*[a-c]` becomes `x[*][[]a-c[]]`, etc...
   This is very useful when you want to match a regular expression with some parts matching literally, and other parts matching as regexps.
+  
   Forms: functional, set.
 
 - `regexp_quote_nocase` *{regular-expression}*
   
   As `regexp_quote` above, but the returned regular expression is made case-independent.
   E.g: `a.b` becomes`[aA][.][bB]`,` x*[a-c]`becomes`[xX][*][[][aA]-[xX][cC][]]`, etc...
+  
   Forms: functional, set.
 
 Only in "set" form:
@@ -88,7 +95,7 @@ Only in "set" form:
 
 - `trim` *{string}*
   Removes the spaces or tabs at the start and end of the *{string}* argument and returns it
-  Forms: functional, set, var.
+- Forms: functional, set, var.
 
 ### Library test suite (in tests/)
 
