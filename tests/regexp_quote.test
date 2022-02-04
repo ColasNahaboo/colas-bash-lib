@@ -1,0 +1,26 @@
+#!/bin/bash
+# run via tewiba
+[ -n "$TEWIBA" ] || exec tewiba -v "$0"
+
+# test of functions in ../src/regexp_quote.sh
+. ../src/regexp_quote.sh               # load them
+
+DOTEST_EVAL(){ [[ $v == "$1" ]] && return 0 || return 1; }
+
+TEST regexp_quote
+DOTEST -o 'a' regexp_quote a
+DOTEST -V 'a' set_regexp_quote v a
+
+DOTEST -o '[aA]' regexp_quote_nocase a
+DOTEST -V '[aA]' set_regexp_quote_nocase v a
+
+DOTEST -o '[aA][.][bB]' regexp_quote_nocase a.b
+DOTEST -V '[aA][.][bB]' set_regexp_quote_nocase v a.b
+DOTEST -V '[aA][.][bB][[]c-d[]]' add_regexp_quote v '[c-d]'
+DOTEST -V '[aA][.][bB][[]c-d[]][xX][+][yY]=[zZ]' add_regexp_quote_nocase v 'x+y=z'
+
+DOTEST -o '[[][[]:[lL][oO][wW][eE][rR]:[]][]][*][[][aA]-[fF][]][.][[][gG]-[zZ][]]' \
+       regexp_quote_nocase '[[:lower:]]*[a-f].[G-Z]'
+
+TEND
+

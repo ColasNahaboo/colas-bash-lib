@@ -1,0 +1,42 @@
+#!/bin/bash
+# run via tewiba
+[ -n "$TEWIBA" ] || exec tewiba -v "$0"
+
+# test of functions in ../src/trim.sh
+. ../src/trim.sh               # load them
+
+DOTEST_EVAL(){ [[ $v == "$1" ]] && return 0 || return 1; }
+
+TEST regexp_quote
+DOTEST -o '' trim ''
+DOTEST -o 'a' trim a
+DOTEST -o 'a  b' trim 'a  b'
+DOTEST -o 'a  b' trim ' a  b'
+DOTEST -o 'a  b' trim 'a  b '
+DOTEST -o 'a  b' trim ' a  b '
+DOTEST -o 'a  b' trim '            a  b'
+DOTEST -o 'a  b' trim 'a  b            '
+DOTEST -o 'a  b' trim '            a  b            '
+
+DOTEST -V '' set_trim v ''
+DOTEST -V 'a' set_trim v a
+DOTEST -V 'a  b' set_trim v 'a  b'
+DOTEST -V 'a  b' set_trim v ' a  b'
+DOTEST -V 'a  b' set_trim v 'a  b '
+DOTEST -V 'a  b' set_trim v ' a  b '
+DOTEST -V 'a  b' set_trim v '            a  b'
+DOTEST -V 'a  b' set_trim v 'a  b            '
+DOTEST -V 'a  b' set_trim v '            a  b            '
+
+v=''; DOTEST -V '' var_trim v
+v=a; DOTEST -V 'a' var_trim v
+v='a  b'; DOTEST -V 'a  b' var_trim v
+v=' a  b'; DOTEST -V 'a  b' var_trim v
+v='a  b '; DOTEST -V 'a  b' var_trim v
+v=' a  b '; DOTEST -V 'a  b' var_trim v
+v='            a  b'; DOTEST -V 'a  b' var_trim v
+v='a  b            '; DOTEST -V 'a  b' var_trim v
+v='            a  b            '; DOTEST -V 'a  b' var_trim v
+
+TEND
+

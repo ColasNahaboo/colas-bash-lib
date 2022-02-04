@@ -1,0 +1,411 @@
+#!/bin/bash
+export TEWIBA=1.5.1
+USAGE="USAGE: tewiba [options] [tests...]
+Tewiba: TEst WIth BAsh: a simple test suite, in the spirit of shell scripting
+Version $TEWIBA - More info: https://github.com/ColasNahaboo/tewiba
+Copyright (c) 2013-2021 Colas Nahaboo (http://colas.nahaboo.net)"
+
+#TEWIBA_IGNORE# Tell tewiba that we are not a test file.
+############################################ Options parsing
+export _debug=false
+export _debuglog=/tmp/tewiba.$LOGNAME.xlog
+export statusfile=
+export ts_standalone=false
+export TEWIBADIR
+TEWIBADIR=$(realpath "$PWD")
+export _TLEVELS
+export TV
+export must_tend=true
+declare -xa _TCLASS_RE
+_TCLASS_RE_STRING=
+
+OPTIONS='e:l:xsVc:f'
+# shellcheck disable=SC2015,SC2016,SC2034,SC2046,SC2089,SC2090,SC2219 #########
+{ V(){ :;};T(){ :;};v=false;E(){ echo "$@";};En(){ E -n "$@";};VV(){ :;}
+err(){ E "***ERROR: $*" >&2; exit 1;};warn(){ E "###Warning: $*" >&2;};nl=$'\n'
+OPTIND=1;while getopts ":${OPTIONS}hv?" _o;do case "$_o" in
+#----single letter options start-----------------------------------------
+    e) statusfile="$OPTARG";;
+    l) _TLEVELS=${OPTARG//[^-[:alnum:]]/};; # for use in [...] regexpes
+    c) _TCLASS_RE_STRING="$OPTARG";;
+    x) _debug=true;;
+    s) ts_standalone=true;;
+    f) must_tend=false;;
+    V) echo "$TEWIBA"; exit 0;;
+#----single letter options end-------------------------------------------
+v)T(){ local i;{ En "==";for i in "$@";do [[ $i =~ [^_[:alnum:]] ]]&&En " $i"||
+En " $i=${!i}";done;E;}>&2;};V(){ E "== $*" >&2;};v=true;;h) E "$USAGE";exit;;
+\?)err "Bad option: -$OPTARG, -h for help.";;':')err "Missing arg: -$OPTARG";;
+*)err "Bad option: -$_o, -h for help.";esac;done;shift $((OPTIND-1));}
+#----end of https://github.com/ColasNahaboo/bashoptions-(getopts)----------v1.0
+[ -z "$TV" ] && TV=$v
+err(){ echo "***ERROR: $*" >&2; TCLEANUP; exit 1;}
+if $_debug; then
+    rm -f "$_debuglog"
+fi
+
+# sets each class matching regexp into an element of the _TCLASS_RE array 
+if [ -n "$_TCLASS_RE_STRING" ]; then
+    while [[ $_TCLASS_RE_STRING =~ ^[[:space:],]*([^[:space:],]+)(.*$) ]]; do
+	_TCLASS_RE+=("${BASH_REMATCH[1]}")
+	_TCLASS_RE_STRING="${BASH_REMATCH[2]}"
+    done
+fi
+
+############################################ Tewiba API: usable funcs & vars
+# These can be used in your tests script files.
+
+# Note: some are only useful for debugging tewiba itself, 
+# so they are not not mentioned in the documentation. Namely:
+# TECHO text    An echo that prints only in verbose mode, on stderr but does
+#               not pollute the stderr of tests when in sub-tewibas
+# TECHOF text   Same, but prints in all modes
+#
+export tmp=/tmp/tewiba.$$
+export nl=$'\n' #'
+export TFAILS=0
+export TOTEST
+# normal error fatalerror info filename ok allok warning. See man dircolors
+export TEWIBA_COLORS; [ -z "$TEWIBA_COLORS" ] && \
+    TEWIBA_COLORS=':none=0:error=31:fatal=1;31:info=36:title=34:ok=32:allok=32;4:warning=35'
+# Except the internal ones below, that start with an underscore "_"
+export _ts_failures=0		# cumulative total of TFAILS
+export _twtmp=/tmp/tewiba-main.$$ # tewiba-reserved temp zone
+export _TINITS=			# the __END__$i to trigger
+export _TEST_CURRENT		# last TEST arg
+export _cd=			# dir we are in, with its __INIT__ executed
+export _twfd			# out-of-band file descriptor for tewiba itself
+export _TSKIP                   # file marker to tell tewiba test was skipped
+export _TEWIBA_IGNORE='^$'      # regexp for ignored files
+
+# at toplevel, tewiba fd gets merged into stderr
+[ -z "$_twfd" ] && exec 3>&2 && _twfd=3
+
+TEST(){ _TEST_CURRENT="$*"; TECHO "== $*"; }
+TERR(){ TECHO -fc er  "***TEST ERROR ${_TEST_CURRENT}*** $*"; ((++TFAILS));}
+FERR(){
+    TECHO -fc fa "***FATAL ERROR ${_TEST_CURRENT}*** $*"; ((++TFAILS))
+    _ts_exit "$TFAILS"
+}
+TEND(){ _ts_exit "$TFAILS"; }
+TINIT(){
+    $ts_standalone && return
+    local id; _TINITS=
+    for id in "$@"; do 
+	id="${id//[^-_.a-zA-Z0-9/}"
+	[[ -z $id ]] && continue
+	_ts_source "__INIT__$id"
+	_TINITS="$id $_TINITS"	# reverse order from inits
+    done
+    _tinits_push "$_TINITS"
+}
+
+TLEVEL(){ if [[ "$1" = '-x' ]]; then shift; TLEVEL_ONLY "$@"; else
+	[ -z "$_TLEVELS" ] || [[ $* =~ [$_TLEVELS] ]] || _ts_skip; fi
+}
+TLEVEL_ONLY(){ [[ $* =~ [$_TLEVELS] ]] || _ts_skip; }
+
+TCLASS(){
+    local initstatus=0 status class re
+    [[ "$1" = '-x' ]] && initstatus=1 && shift
+    [ "${#_TCLASS_RE[@]}" = 0 ] && status=$initstatus || status=1
+    for re in "${_TCLASS_RE[@]}"; do for class in "$@"; do
+	    if [[ $class =~ ^${re#!}$ ]]; then
+		[[ $re =~ ^[!] ]] && status=1 || status=0
+	    fi
+    done; done
+    [ -z "$status" ] && status=$initstatus
+    [ "$status" != 0 ] && _ts_skip
+}
+
+# Printing tewiba messages out of the way of stdout & stderr of the tests
+TECHO(){
+    local opt normal=true key eopt cs ce 
+    OPTIND=1; while getopts 'vfnc:' opt; do case "$opt" in
+	v) :;;
+        f) normal=false;;
+        n) eopt='-n';;
+        c) key="${OPTARG//[^[:alpha:]]/}";;
+        *) :;;
+    esac; done; shift $((OPTIND-1))
+    $normal && ! $TV && return
+    if [ -n "$key" ] && [ -t 3 ] && \
+	[[ $TEWIBA_COLORS =~ (^|:)${key}[[:alpha:]]*=([^:]*) ]]; then
+	cs=$'\e['${BASH_REMATCH[2]}m; ce=$'\e[0m'
+	echo $eopt "$cs""$*""$ce" >&3;
+    else
+	echo $eopt "$@" >&3;
+    fi
+}
+
+# Usage: DOTEST [options] command-to-test its-options...
+DOTEST(){
+    local opt label o to e te s ts f c vv vf result status r=0
+    OPTIND=1; while getopts 'o:O:e:E:s:S:l:f:c:v:V:' opt; do case "$opt" in
+	l) label="$OPTARG ";;
+        o) o="$OPTARG"; to=f;; O) o="$OPTARG"; to=r;;
+        e) e="$OPTARG"; te=f;; E) e="$OPTARG"; te=r;;
+        s) [[ "$OPTARG" =~ ^-?[[:digit:]]+$ ]] && \
+	    s="status != $OPTARG" || s="status != 0" ; ts=r;;
+        S) s="$OPTARG"; ts=r;;
+	f) f="$OPTARG";; c) c="$OPTARG";;
+        v) vv="$OPTARG";; V) vf="$OPTARG";;
+        *) :;;
+    esac; done; shift $((OPTIND-1))
+
+    "$@" >$tmp.dotest.out 2>$tmp.dotest.err; status=$?
+
+    [ -n "$to" ] && result=$(cat $tmp.dotest.out) && \
+	[[ ( $to = f && "$result" != "$o" ) ||
+               ( $to = e && ! $result =~ $o ) ]] && ((++r)) &&\
+	TERR "${label}stdout${nl}Expect: \"$o\"${nl}Got>>>: \"$result\""
+    [ -n "$te" ] && result=$(cat $tmp.dotest.err) && \
+	[[ ( $te = f && "$result" != "$e" ) ||
+               ( $te = e && ! $result =~ $e ) ]] && ((++r)) &&\
+	TERR "${label}stderr${nl}Expect: \"$e\"${nl}Got>>>: \"$result\""
+    [ -n "$ts" ] && (("$s")) && ((++r)) && \
+	TERR "${label}status expected: \"$s\", got $status"
+    [ -n "$f" ] && ! cmp -s $tmp.dotest.out "$f" && ((++r)) && \
+	if [ -n "$c" ]; then cp $tmp.dotest.out "$c"
+	 TERR "${label}output differ, compare expected to result:
+diff ${f@Q} ${F@Q}"
+	else TERR "${label}output differ"
+        fi
+    [ -n "$vv" ] && {
+        eval "$vv" >/dev/null 2>&1 </dev/null ||
+            TERR "$vv failed (status $?)"
+    }
+    [ -n "$vf" ] && {
+        DOTEST_EVAL "$vf" "$@" >/dev/null 2>&1 </dev/null ||
+            TERR "DOTEST_EVAL $vf $*: failed (status $?)"
+    }
+    return "$r"
+}
+
+# in  __INIT__, declare regexes to ignore file names
+TEWIBA_IGNORE(){
+    if [[ $_TEWIBA_IGNORE =~ ^(\^\$)?$ ]]; then _TEWIBA_IGNORE="^("
+    else _TEWIBA_IGNORE="${_TEWIBA_IGNORE%)}"
+    fi
+    local i; for i in "$@"; do _TEWIBA_IGNORE+="$i|"; done
+    _TEWIBA_IGNORE="${_TEWIBA_IGNORE/%|/)}"
+}
+
+TCLEANUP(){ # with guards to avoid disaster if something undefined the vars
+    ts_chdir
+    [ -n "$_twtmp" ] && rm -rf $_twtmp $_twtmp.*
+    [ -n "$tmp" ] && rm -rf $tmp $tmp.*
+}
+trap TCLEANUP 0
+
+# push back the TINITS from the child test process to the underlying tewiba
+_tinits_push(){ echo "$_cd $*" >>$_twtmp.endids;}
+
+# low-level exit
+_ts_exit(){ exit "${1:-0}"; }
+
+# test skipped, do not aggregate result
+_ts_skip(){ [ -n "$_TSKIP" ] && true >"$_TSKIP"; exit 0; }
+
+# source if exist, and trace if verbose
+# shellcheck disable=SC1090 # allow sourcing files
+_ts_source(){ [ -f "$1" ] && { TECHO -c ti "== Sourcing $1"; . "$1";};}
+
+# export these functions to be usable in test scripts
+export -f TLEVEL_ONLY TLEVEL TEST TERR FERR TEND TECHO TINIT TCLEANUP \
+ DOTEST TEWIBA_IGNORE TCLASS \
+    _tinits_push _ts_exit _ts_skip _ts_source
+
+############################################ Tewiba internals
+# these functions are local to tewiba and not available to test scripts
+
+# quote regexp for use in grep and [[...]]
+regexp_quote(){ local i r c len=${#1};for (( i=0; i<len; i++ ));do
+  c="${1:i:1}";case "$c" in [^][{}?*\|+.$\\\(\)/^])r+="$c";;'^')r+='\^';;
+  *)r+="[$c]";;esac;done;echo -n "$r"
+}
+
+# _tinit_pull do not need to be exported into the test file scope.
+tinits_pull(){
+    local cd; cd=$(regexp_quote "$1")
+    local tinits; tinits=$(grep -oPs "^$cd \K.*" $_twtmp.endids)
+    local tofix=
+    [ -e $_twtmp.endids ] && tofix="$_twtmp.endids"
+    [ -e $_twtmp.ends ] && tofix="$tofix $_twtmp.ends"
+    # shellcheck disable=SC2086 # yes, $tofix is a list
+    [ -n "$tofix" ] && sed -r -i -e "/^$cd /d" $tofix
+    echo "$tinits"
+}
+
+# low level cd: go into a dir, execute its __INIT__. Do not call directly
+tscd(){
+    local d="$1"
+    [ -z "$d" ] && return
+    [ "$d" == "$_cd" ] && return # nothing to do
+    _cd=$(realpath "$d")
+    cd "$_cd" 2>/dev/null || {
+	local expansed
+	[ "$_cd" != "$d" ] && expansed=" ($_cd)"
+	err "Fatal: tewiba failed to enter test dir: $d$expansed"
+    }	
+    $ts_standalone && return
+    _ts_source __INIT__
+    [ -f __END__ ] && echo "$_cd " >>$_twtmp.ends # remember to do it on exit
+}
+
+# change dir, manages exiting current dir (_cd) if non empty, and entering 
+# new dir in argument in $1 if non empty. High level function.
+
+ts_chdir(){
+    local d="$1" id i
+    [ "$d" == "$_cd" ] && return
+    if $ts_standalone; then tscd "$d"; return; fi
+
+    if [ -z "$d" ] || is_subdir_of "$d" "$_cd"; then # subdir, no ends
+	tscd "$d"
+    elif is_subdir_of "$_cd" "$d"; then # going back, ends no init
+	while read -r i; do
+	    [ "$i" == "$d" ] && break
+	    is_subdir_of "$i" "$d" || break
+	    cd "$i" || continue
+	    _TINITS=$(tinits_pull "$i")
+	    for id in $_TINITS; do _ts_source "__END__$id"; done
+	    _ts_source __END__
+	done < <(tac $_twtmp.ends 2>/dev/null)
+        # shellcheck disable=SC2164 # we know we can get there
+	cd "$d"
+	_cd="$d"
+    else			# jump elsewhere, ends and inits
+	while read -r i; do
+	    cd "$i" || continue
+	    _TINITS=$(tinits_pull "$i")
+	    for id in $_TINITS; do _ts_source "__END__$id"; done
+	    _ts_source __END__
+	done < <(cat $_twtmp.ends 2>/dev/null)
+	rm -f $_twtmp.ends
+	tscd "$d"
+    fi
+}
+
+# executes all the tests in current (_cd) dir
+ts_dir(){
+    local i r
+    for i in *; do
+	r=$(realpath "$i")
+	if [ -d "$i" ]; then
+	    if [[ $i =~ [.]subtests$ ]]; then # only go in *.subtests dirs
+		ts_chdir "$r"
+		ts_dir
+	    fi
+	else # ignore #_.-prefixed, ~-suffixed non-bash-executables, marked
+	    if [[ $i =~ (^[\#._]|~$) || ! -x "$i" || ! -s "$i" ]] || \
+		! grep -q '^#![[:space:]]*/.*/bash' < <(head -1 "$i") || \
+		grep -q '#TEWIBA_IGNORE#' "$i" || \
+		[[ $i =~ $_TEWIBA_IGNORE ]]; then
+		continue
+	    else
+		ts_test "$r"
+	    fi
+	fi
+    done
+}
+
+# will this test be run for the current level?
+# $1=test file, returns 0 if OK
+# we pre-detect it before running TLEVEL in file, avoiding extra "test ok" mess
+ts_level(){
+    local tlevel; tlevel=$(grep -oP '^[[:space:]]*TLEVEL +\K.*' "$1")
+    [ -z "$tlevel" ] && return 0 # no TLEVEL line => OK
+    [ -z "$_TLEVELS" ] || [[ $tlevel =~ [$_TLEVELS] ]] || return 1
+    return 0
+}
+
+# execute a single test in the current directory
+ts_test(){
+    local t="$1" s="#################################"
+    local f="${t##*/}"
+    ts_level "$t" || return
+    ! grep -Eq '^([^#]*;|[[:space:]]*)TEND([;[:space:]]|$)' "$t" && \
+	$must_tend && \
+	! grep -q '^ *#TNOEND' "$t" && [ -s "$t" ] && \
+	err "Test file \"$t\" does not have a TEND statement. Use -f to force."
+    _TEST_CURRENT="$f" # default TEST name: the filename
+    TFAILS=0
+    if $_debug; then
+	echo "$s$s$nl$s Test File: $t$nl$s$s" >>"$_debuglog"
+        # RUN TEST in Trace Mode
+	bash -x "$t" >>"$_debuglog" 2>&1 3>&1; status=$? # merge all outputs
+	trap TCLEANUP 0 # in case the test redefined it
+    else
+	TECHO -c ti "== Test file: $f:"
+	_TSKIP=$_twtmp.skip.$$
+        # RUN TEST
+	"$t" 2>$_twtmp.err >$_twtmp.out; status=$?
+	trap TCLEANUP 0 # in case the test redefined it
+	if $TV && test -s $_twtmp.out; then print_indent $_twtmp.out; fi
+	if [ -e "$_TSKIP" ]; then
+	    TECHO -c in "   Skipped"
+	    rm -f "$_TSKIP"
+	else
+	    ((_ts_failures += status))
+	    if [ $status == 0 ]; then
+		if test -s $_twtmp.err; then 
+		    if $TV; then TECHO -c wa "== OK, but printed on stderr:"
+		    else TECHO -fc wa "###Warning: test $f OK, but printed on stderr:"
+		    fi
+		    print_indent $_twtmp.err
+		else
+		    TECHO -c ok "== OK"
+		fi
+	    else
+		if $TV; then TECHO -c er "***ERRORS:$status"
+		else 
+		    TECHO -fc er "***FAILED ($status ERRORS): $f"
+		    if test -s $_twtmp.err; then print_indent $_twtmp.err; fi
+		fi
+	    fi
+	fi
+    fi
+}
+
+# print test outputs indented by 3 spaces for lisibility
+print_indent(){	sed -e 's/^/   /' <"$1" >&3;}
+
+# is $1 a subdir of $2? aka $2 is a strict non-empty substring of $1?
+is_subdir_of(){ [ -n "$2" ]&&[ "${1:0:${#2}}" == "$2" ]&&[ "$1" != "$2" ];}
+
+############################################ Main logic
+
+# run all tests given in arguments, or in the current dir if none given
+
+if [ $# == 0 ]; then
+    [ -d tests ] && { cd tests || exit 1;}
+    ts_chdir .
+    ts_dir .
+else
+    for t in "$@"; do
+	cd "$TEWIBADIR" || exit 1 # if t is a relative path
+	r=$(realpath "$t")        # use only r from now on, as we may cd
+	if [  -d "$r" ]; then 
+		ts_chdir "$r"
+		ts_dir "$r"
+	elif [ -x "$r" ]; then 
+	    d="${r%/**}"; f="${r##*/}"
+		ts_chdir "$d"
+		ts_test "$f"
+	elif [ -e "$r" ]; then
+	    err "$t is not executable!"
+	else err
+	    "$t not found!"
+	fi
+    done
+fi
+[ -n "$_cd" ] && { ts_chdir; _cd=;}
+
+############################################ Epilogue: print results, and exit
+if [[ $_ts_failures == 0 ]]; then TECHO -c al "All tests OK =="
+else TECHO -fc fa "== ***** Total tests failed: $_ts_failures *****"
+fi
+$_debug  && TECHO -fc no "== log of execution in $_debuglog for $*"
+[ -n "$statusfile" ] && echo "$_ts_failures" >"$statusfile"
+_ts_exit "$_ts_failures"

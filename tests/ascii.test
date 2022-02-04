@@ -1,0 +1,22 @@
+#!/bin/bash
+# run via tewiba
+[ -n "$TEWIBA" ] || exec tewiba -v "$0"
+
+# test of functions in ../src/ascii.sh
+. ../src/ascii.sh               # load them
+
+TEST functional
+DOTEST -l a2i -o 65 a2i A
+DOTEST -l i2a -o A i2a 65
+DOTEST -l a2x -o 41 a2x A
+DOTEST -l x2a -o A x2a 41
+
+TEST set
+DOTEST_EVAL(){ [[ $v == "$1" ]] && return 0 || return 1; }
+DOTEST -l set_a2i -V 65 set_a2i v A
+DOTEST -l set_i2a -V A set_i2a v 65
+DOTEST -l set_a2x -V 41 set_a2x v A
+DOTEST -l set_x2a -V A set_x2a v 41
+
+TEND
+

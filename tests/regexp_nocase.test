@@ -1,0 +1,21 @@
+#!/bin/bash
+# run via tewiba
+[ -n "$TEWIBA" ] || exec tewiba -v "$0"
+
+# test of functions in ../src/regexp_nocase.sh
+. ../src/regexp_nocase.sh               # load them
+
+DOTEST_EVAL(){ [[ $v == "$1" ]] && return 0 || return 1; }
+
+TEST regexp_nocase
+DOTEST -o '[aA]' regexp_nocase a
+DOTEST -V '[aA]' set_regexp_nocase v a
+
+DOTEST -o '[aA].[bB]' regexp_nocase a.b
+DOTEST -V '[aA].[bB]' set_regexp_nocase v a.b
+
+DOTEST -o '[[:alpha:]]*[a-fA-F].[g-zG-Z]' regexp_nocase '[[:lower:]]*[a-f].[G-Z]'
+DOTEST -V '[[:alpha:]]*[a-fA-F].[g-zG-Z]' set_regexp_nocase v '[[:lower:]]*[a-f].[G-Z]'
+
+TEND
+
