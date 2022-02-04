@@ -95,7 +95,8 @@ Only in "set" form:
 
 - `trim` *{string}*
   Removes the spaces or tabs at the start and end of the *{string}* argument and returns it
-- Forms: functional, set, var.
+
+  Forms: functional, set, var.
 
 ### Library test suite (in tests/)
 
