@@ -9,24 +9,24 @@ Fell free to copy and use in any of your projects or compilation of bash tools.
 
 I have tried to make them the **fastest** possible, by avoiding forking sub-shells or external commands, and benchmarking extensively to compare the possible way of coding them. Of course, I will gladly accept suggestions or code to make them faster. But it means that error checking is often terse and minimal, and readability of the code was not a priority.
 
-I have a kind of «anti-npm» approach, in that I **copy** these functions into my scripts rather that using them as a true external library that I would load at runtime. It then avoid installation issues, and the dependency problems that may arise from automated upgrades. Just keep the "`from:`" comment at the start to know where (url) to check for upgrades, and which version of the function this copy is.
+I have a kind of «anti-npm» approach, in that I **copy** these functions into my scripts rather that using them as a true external library that I would load at runtime. It thus avoid installation issues, and the dependency problems that may arise from automated upgrades. Just keep the "`from:`" comment at the start to know where (url) to check for upgrades, and which version of the function this copy is.
 
 Most of the files in the form `src/foo.sh` have many **versions** of the same functions. For a function named `foo`, you can find:
 
 - **"functional forms"** `foo` that prints its result on **stdout**. This is the traditional way used in most scripts, so that's why I always provide it.
   E.g: `gee=$(foo bar)`
-- **"set forms"** `set_foo` that sets the result into a **variable** that must be provided as first argument. This is my preferred way to use bash functions, as it is faster than the "normal" way above (often twice as fast), and it allows the function access to the main script variables, which is especially important with arrays as that cannot be passed as arguments. And it provides a simple way to return multiple values, by using more than one "set" variables. But the drawback is that they are cumbersome to use in recursive programs, as you must take care that the variable name is not the same as the name used for it inside the function. I prefix these internal variables with an underscore to try to minimize name clashes, but it is not foolproof.
-  E.g: `set_foo gee bar`_
+- **"set forms"** `set_foo` that sets the result into a **variable** that must be provided as first argument. This is my preferred way to use bash functions, as it is faster than the "normal" way above (often twice as fast), and it allows the function to access the main script variables, which is especially important with arrays as they cannot be passed as arguments. And it provides a simple way to return multiple values, by using more than one "set" variables. But the drawback is that they are cumbersome to use in recursive programs, as you must take care that the variable name is not the same as the name used for it inside the function. I prefix these internal variables with an underscore to try to minimize name clashes, but it is not foolproof.
+  E.g: `set_foo gee bar`
 - **"var forms"** `var_foo` modifies **in place** the contents of the variable given as argument, if it is a common use case. For instance, trimming space is often performed in place, so I provide `var_trim`, but not `var_regexp_quote`,  as using the same variable to hold a regexp or its quoted version could be error-prone.
-  E.g: `var_foo gee`_is the same as `set_foo gee "$gee"`or `gee=$(foo "$gee")`****
+  E.g: `var_foo gee`_is the same as `set_foo gee "$gee"`or `gee=$(foo "$gee")`
 - **"samename forms"** `foo` is a simplified, and a tiny bit faster, form of set forms, where the function sets its return value to a variable of the **same name** of the function. But I rarely use this, as I think that the very small speed gain is not worth the potential confusion for readers that are not familiar that the same name can refer to a function or a variable.
-  E.g: after calling `foo bar`, the result can be found in the shell variable `${foo}`
+  E.g: after calling `foo bar`, the result can be found in the shell variable `$foo`
 
 All these functions duplicate their code so that they are standalone and can be **copied individually**, unless clearly specified. It is an «anti-framework» approach. It is expected you will only copy the functions and the forms you are actually using into your scripts rather than loading the whole file as is (but it can be done).
 
 The non-trivial functions start with a `local -; set +xv;`  line that removes the **trace mode** when in the function. Thus when debugging a script by `set -xv` your log is not polluted by the internal tracing of these function that can be quite long when iterating on strings for instance.
 
-The functions pass `shellcheck`, and can be used with `set -u`, but may not work with `set -e`.
+The functions pass `shellcheck`, and can be used with `set -u`, but may not work with `set -e`. If you use `set -e`, just change the `set +xv` statement at the start of functions to `set +xve`.
 
 ### library files
 
@@ -38,7 +38,6 @@ E.g. you can use `variable=$(regexp_nocase expression)` (functional form) or `se
 - `i2a` *{integer}*
   Returns the character (string of length 1) of ascii code *{integer}*.
   E.g: `i2a 65` returns `A`
-  
   Forms: functional, set
 
 - `a2i` *{character}*
@@ -70,7 +69,6 @@ E.g. you can use `variable=$(regexp_nocase expression)` (functional form) or `se
   Takes a regular expression (as used in `[[ =~ ]]`) as only parameter, and returns a modified version that quotes (or escape) special characters to make them match literally. A bit like `fgrep`.
   E.g: `a.b` becomes `a[.]b`, `x*[a-c]` becomes `x[*][[]a-c[]]`, etc...
   This is very useful when you want to match a regular expression with some parts matching literally, and other parts matching as regexps.
-  
   Forms: functional, set.
 
 - `regexp_quote_nocase` *{regular-expression}*
