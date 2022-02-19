@@ -4,7 +4,7 @@ Maintains backups of the Firefox previous sessions file. Useful when the
 previous session files info gets corrupted, or erased by mistake, typically
 during an unwanted restart.
 Files are stored as recovery.jsonlz4-bak-YYYY-MM-DD.HH.MN.SS
-in the directory: ~/.mozilla/firecos/*.default/sessionstore-backups/
+in the directory: ~/.mozilla/firefox/*.default/sessionstore-backups/
 To restore a backup, stop firefox, copy it as recovery.jsonlz4 in the same dir,
 restart firefox and restore previous session.
 Suggestion: run firefox-sessions-backups at boot in your crontab: E.g:
@@ -22,12 +22,12 @@ Options:
   -v Verbose mode, otherwise totally silent except for fatal errors.
 
 Note: firefox by default saves the session info every 15s, which can make videos stutter
-and can wear SSDs. It is recommended to set \"browser.sessionstore.interval\" to a larger
+and can wear SSDs. It is recommended to set "browser.sessionstore.interval" to a larger
 value (in microseconds). I use 1800000 to save every 30 minutes. You can also raise
-\"browser.sessionstore.interval.idle\" that is the save interval while user is idle,
+"browser.sessionstore.interval.idle" that is the save interval while user is idle,
 by default 1 hour (3600000) to many hours (I use 21600000 = 6h).
 
-v1.0.0 2022-02-19
+v1.0.1 2022-02-19
 Source: https://github.com/ColasNahaboo/colas-bash-lib/tree/main/bin/firefox-sessions-backups'
 
 ############ Options
