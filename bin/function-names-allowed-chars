@@ -1,0 +1,43 @@
+#!/bin/bash
+# lists the allowed chars in bash function names. Adapted from Ron Burk:
+# https://stackoverflow.com/questions/28114999/what-are-the-rules-for-valid-identifiers-e-g-functions-vars-etc-in-bash/44041384#44041384
+
+ASCII=( nul soh stx etx eot enq ack bel bs tab nl vt np cr so si dle \
+            dc1 dc2 dc3 dc4 nak syn etb can em sub esc fs gs rs us sp )
+
+for((i=33; i < 127; ++i)); do
+    printf -v Hex "%x" $i
+
+    printf -v Chr "\x$Hex"
+    ASCII[$i]="$Chr"
+done
+ASCII[127]=del
+for((i=128; i < 256; ++i)); do
+    ASCII[$i]=$(printf "0X%x" $i)
+done
+
+# ASCII table is now defined
+
+function Test(){
+    Illegal=""
+    Legal=""
+    for((i=1; i <= 255; ++i)); do
+        Name="$(printf \\$(printf '%03o' $i))"
+        eval "function $1$Name(){ return 0; }; $1$Name ;" 2>/dev/null
+        if [[ $? -ne 0 ]]; then
+            Illegal+=" ${ASCII[$i]}"
+        else
+            Legal+=" ${ASCII[$i]}"
+        fi
+    done
+    printf "Legal: %s\n" "$Legal"
+    printf "Illegal: %s\n" "$Illegal"
+}
+
+echo "For bash version: $BASH_VERSION"
+echo
+echo "For first function name character:"
+Test
+echo
+echo "For the following characters:"
+Test "x"

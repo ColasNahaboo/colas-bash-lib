@@ -2,10 +2,18 @@
 
 This is the repository of the miscellaneous small bits of code and info I use in my bash scripts. My personal bash developer toolkit.
 
+## Scripts (in bin/)
+
+Standalone small bash scripts that do not deserve a separate repository (such as [cgibashopts](https://github.com/ColasNahaboo/cgibashopts), [rsync-incr](https://github.com/ColasNahaboo/rsync-incr), [tewiba](https://github.com/ColasNahaboo/tewiba), [irclogger](https://github.com/ColasNahaboo/irclogger), ...) can be found in `bin/`:
+- [firefox-sessions-backups](bin/firefox-sessions-backups) Maintains backups of the Firefox previous sessions file.
+- [function-names-allowed-chars](bin/function-names-allowed-chars) Lists the allowed chars in bash function names.
+
 ## Library (in src/)
 
-My collection of various **bash functions** I reuse often in my bash scripts. they expect a modern bash version, I guess version 5 at least, although most should work with bash 4.3+.
+My collection of various small **bash functions** I reuse often in my bash scripts. they expect a modern bash version, I guess version 5 at least, although most should work with bash 4.3+.
 Fell free to copy and use in any of your projects or compilation of bash tools.
+
+Bigger copy-pastable functions have their own repository, such as [bashoptions](https://github.com/ColasNahaboo/bashoptions).
 
 I have tried to make them the **fastest** possible, by avoiding forking sub-shells or external commands, and benchmarking extensively to compare the possible way of coding them. Of course, I will gladly accept suggestions or code to make them faster. But it means that error checking is often terse and minimal, and readability of the code was not a priority.
 
@@ -95,7 +103,7 @@ Only in "set" form:
 
 - `trim` *{string}*
   Removes the spaces or tabs at the start and end of the *{string}* argument and returns it
-
+  
   Forms: functional, set, var.
 
 ### Library test suite (in tests/)
@@ -117,6 +125,7 @@ Info:
 - [A Complete Guide on How To Use Bash Arrays](https://www.shell-tips.com/bash/arrays/)
 - https://tldp.org/LDP/abs/html/ (a bit old)
 - [Nick Sweeting's reading list](https://github.innominds.com/pirate/bash-utils#reading-list) a collection of useful bash links
+- [Calex Xu curated list](https://unix-shell.zeef.com/caleb.xu) of shell utilities
 
 Tools:
 

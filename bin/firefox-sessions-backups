@@ -1,0 +1,92 @@
+#!/bin/bash
+USAGE='firefox-sessions-backups [options]
+Maintains backups of the Firefox previous sessions file. Useful when the 
+previous session files info gets corrupted, or erased by mistake, typically
+during an unwanted restart.
+Files are stored as recovery.jsonlz4-bak-YYYY-MM-DD.HH.MN.SS
+in the directory: ~/.mozilla/firecos/*.default/sessionstore-backups/
+To restore a backup, stop firefox, copy it as recovery.jsonlz4 in the same dir,
+restart firefox and restore previous session.
+Suggestion: run firefox-sessions-backups at boot in your crontab: E.g:
+  @reboot /usr/local/bin/firefox-sessions-backups >/dev/null 2>&1 </dev/null
+It uses inotify for accuracy and minimal system load, no active waiting.
+
+Options:
+  -a accountname
+     Uses the account "accountname" instead of the default.
+  -k number
+     Keeps "number" most recent backups. Defaults to 10.
+  -w seconds
+     Waits "seconds" after a detected file change before backuping. Defaults to 2.
+  -l Lists all available accounts with backupable sessions files and exit.
+  -v Verbose mode, otherwise totally silent except for fatal errors.
+
+Note: firefox by default saves the session info every 15s, which can make videos stutter
+and can wear SSDs. It is recommended to set \"browser.sessionstore.interval\" to a larger
+value (in microseconds). I use 1800000 to save every 30 minutes. You can also raise
+\"browser.sessionstore.interval.idle\" that is the save interval while user is idle,
+by default 1 hour (3600000) to many hours (I use 21600000 = 6h).
+
+v1.0.0 2022-02-19
+Source: https://github.com/ColasNahaboo/colas-bash-lib/tree/main/bin/firefox-sessions-backups'
+
+############ Options
+REQUIRE=(inotifywait)           # list of required commands
+account=
+keep=10
+delay=2
+OPTIONS='a:k:w:l'
+# shellcheck disable=SC2015,SC2016,SC2034,SC2046,SC2089,SC2090,SC2219 #########
+{ V(){ :;};T(){ :;};v=false;E(){ echo "$@";};En(){ E -n "$@";};VV(){ :;}
+err(){ E "***ERROR: $*" >&2; exit 1;};warn(){ E "###Warning: $*" >&2;};nl=$'\n'
+OPTIND=1;while getopts ":${OPTIONS}hv?" _o;do case "$_o" in
+#----single letter options start-----------------------------------------
+    a) account="$OPTARG";;
+    k) keep="$OPTARG";;
+    w) delay="$OPTARG";;
+    l) while read -r d; do
+           [[ $d =~ /[.]mozilla/firefox/([^/]+) ]] && echo "  ${BASH_REMATCH[1]}"
+       done < <(ls -1t "$HOME/.mozilla/firefox/"*"/sessionstore-backups/recovery.jsonlz4" 2>/dev/null)
+       exit 0;;
+#----single letter options end-------------------------------------------
+v)T(){ local i;{ En "==";for i in "$@";do [[ $i =~ [^_[:alnum:]] ]]&&En " $i"||
+En " $i=${!i}";done;E;}>&2;};V(){ E "== $*" >&2;};v=true;;h) E "$USAGE";exit;;
+\?)err "Bad option: -$OPTARG, -h for help.";;':')err "Missing arg: -$OPTARG";;
+*)err "Bad option: -$_o, -h for help.";esac;done;shift $((OPTIND-1));}
+#----end of https://github.com/ColasNahaboo/bashoptions-(getopts)----------v1.0
+
+############ Inits
+for r in "${REQUIRE[@]}"; do hash "$r" 2>/dev/null || err "$r required!"; done
+
+if [[ -z $account ]]; then
+    account=$(grep -B4 '^Default=1' "$HOME/.mozilla/firefox/profiles.ini" |grep -oP '^Path=\K.*')
+    [[ -n $account ]] || err "Could not find a default firefox account. Use -l to list them."
+fi
+dir="$HOME/.mozilla/firefox/$account/sessionstore-backups/"
+cd "$dir" || err "Cannot go into firefox profile dir: $dir"
+file="recovery.jsonlz4"
+
+[[ -e $file ]] || sleep "$delay"
+tick=$(grep -oP '^user_pref[(]"browser[.]sessionstore[.]interval", *\K[[:digit:]]+' ../prefs.js)
+if [[ -n $tick ]]; then
+    ((tick /= 1000))
+    tickmess=", every $tick seconds"
+else
+    tickmess=
+fi
+
+############ Main loop: wait for change + clean old + backup
+V "Starting automated backups of firefox session file$tickmess"
+while true; do
+    V "Backuping session to $file-bak-$(date +%Y-%m-%d.%H-%M-%S)"
+    cp "$file" "$file-bak-$(date +%Y-%m-%d.%H-%M-%S)"
+    # shellcheck disable=SC2012
+    while read -r f; do
+        V "Removing old backup: $f"
+        rm -f "$f"
+    done < <(ls -1tr "$file-bak-"* 2>/dev/null | head -n -"$keep")
+    inotifywait -qq "$file"
+    sleep "$delay"              # need at least 0.1s for the file re-creation
+done
+
+
