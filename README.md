@@ -65,6 +65,15 @@ E.g. you can use `variable=$(regexp_nocase expression)` (functional form) or `se
   
   Forms: functional, set
 
+#### src/pptime.sh
+
+- `pptime` *{integer}*
+  Prints on its stdout a human-friendly form of the number of seconds as argument
+  E.g: `pptime 57689243` prints `27d4h47m23s`, `pptime 666` prints `11m6s`
+  The globals `pptimesep` and `ppformat` control the output format,
+  E.g: with `pptimesep=' '`, `pptime 57689243` prints `27d 4h 47m 23s`, `pptime 666` prints `11 m6s`
+  with `ppformat='02'`, `pptime 57689243` prints `27d04h47m23s`, `pptime 666` prints `11m06s`
+
 #### src/regexp_nocase.sh
 
 - `regexp_nocase` *{regular-expression}*
