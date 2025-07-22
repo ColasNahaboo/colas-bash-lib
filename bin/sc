@@ -1,0 +1,34 @@
+#!/bin/bash
+USAGE="checks all bash scripts in current dir
+outputs error messages in gcc error messages format
+with -r option, also recurses in subdirs
+Useful checking exclusions:
+# shellcheck disable=SC1090,SC2155 # read source files, declare&assign vars
+"
+
+files(){ find . -maxdepth 1 -type f;}
+OPTIONS='r'
+OPTIND=1
+nl=$'\n'
+while getopts "${OPTIONS}" _o;do
+    case "$_o" in
+        r) files(){ find -- * -type f;};;
+        *) echo "unknown option: $_o${nl}USAGE:${nl}$USAGE"; exit 1;;
+    esac
+done
+shift $((OPTIND-1))
+if [[ -n $* ]]; then
+    export files=("$@")
+    files(){ printf '%s\n' "${files[@]}";}
+fi
+
+
+while read -r i; do
+    [[ $i =~ [.](ba)?sh$ ]] || {
+        [[ -x $i ]] || continue
+        read -r -n 20 line <"$i" || continue
+        [[ $line =~ ^#!/(bin/|usr/bin/env\ )bash ]] || continue
+    }
+    i="${i#./}"
+    bash -n -- "$i" && shellcheck -f gcc -- "$i"
+done < <(files)

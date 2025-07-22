@@ -155,4 +155,5 @@ Libraries:
 
 High-level history of changes
 
+- v1.1.0 (2025-02-02) pptime added
 - v1.0.0 (2022-02-04) First deployment, with modules: ascii, regexp_nocase, regexp_quote, trim
