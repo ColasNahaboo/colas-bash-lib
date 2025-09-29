@@ -7,6 +7,8 @@ This is the repository of the miscellaneous small bits of code and info I use in
 Standalone small bash scripts that do not deserve a separate repository (such as [cgibashopts](https://github.com/ColasNahaboo/cgibashopts), [rsync-incr](https://github.com/ColasNahaboo/rsync-incr), [tewiba](https://github.com/ColasNahaboo/tewiba), [irclogger](https://github.com/ColasNahaboo/irclogger), ...) can be found in `bin/`:
 - [firefox-sessions-backups](bin/firefox-sessions-backups) Maintains backups of the Firefox previous sessions file.
 - [function-names-allowed-chars](bin/function-names-allowed-chars) Lists the allowed chars in bash function names.
+- [updatedb-nowake](bin/updatedb-nowake) Builds updatedb databases for disks
+only if they are spinning, and the database is older than  T hours (defauklt: 23). Avoids waking up disks if not needed.
 
 ## Library (in src/)
 

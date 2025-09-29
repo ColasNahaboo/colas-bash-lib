@@ -1,0 +1,76 @@
+#!/bin/bash
+USAGE="updatedb-nowake
+reads paths in /etc/updatedb.nowake and builds updatedb databases for them
+only if their disks are spinning, and the database is older than a T hours.
+T defaults to 23 hours, or can be appended to paths with a semicolon, as
+/s/1:7 for 167 hours = a week, or /s/2:7
+
+Should be run every N minutes, with N smaller than the spindown-if-idle time
+
+Uses plocate, which is quite fast: an update is less than 5 seconds.
+Databases are /var/lib/plocate/plocate-*.db
+
+Example of /etc/updatedb.nowake: /s/1 /s/2:167
+
+Options:
+  -v     verbose
+"
+
+export T_default=23
+
+V () { :;};T () { :;};v=false;E () { echo "$@";};En () { echo -n "$@";};V2 () { :;}
+err () { echo "***ERROR: $*" >&2; exit 1; }
+while test "_${1#-}" != "_$1" -a "_${1//-/}" != "_";do case "$1" in
+  -v) xopts=;avll=info
+      V () { echo "== $*";}; v=true; V2 () { echo "-- $*" >&2;}
+      T () { local i;En "==";for i in $*; do En " $i="`eval E '$'$i`;done;E;};;
+  *) echo "$USAGE"; exit 1;
+esac;shift; done; if test "_$1" = "_--";then shift; fi
+
+[ -n "$1" ] && err "$USAGE"
+[ -s /etc/updatedb.nowake ] || err "Could not read /etc/updatedb.nowake"
+[ "$UID" = 0 ] || err "Must be run as root, not uid $UID"
+
+export now=$(date +%s)
+
+main() {
+    local paths pt p d t
+    paths=$(grep -v '^[[:space:]]*#'  /etc/updatedb.nowake)
+    for pt in $paths; do
+	p="${pt%:*}"
+	d=$(mount | grep -oP "^[^ ]+(?= on $p )")
+	[ -z "$d" ] && err "Path \"$p\": could not find its mounted disk"
+	sleeps $d && V "$p ($d) sleeping, skipping" && continue
+	[[ $pt =~ :([0-9]+)$ ]] && t="${BASH_REMATCH[1]}" || t=
+	update_db_of $d $p $t
+    done
+}
+
+update_db_of() {
+    local dev="$1" path="$2" delay="${3:-$T_default}"
+    local db=/var/lib/plocate/plocate${p////-}.db dbtime
+    if [ -e $db ]; then
+	dbtime=$(date -r $db +%s)
+	if let '(now - dbtime) < delay'; then
+     	    V "$path ($dev) database $db too recent, skipping"
+	    return
+	fi
+    fi
+    log $d $p
+    flock --nonblock /run/plocate.nowake /usr/bin/ionice -c3 /usr/sbin/updatedb.plocate -o $db -U $path
+}
+       
+sleeps () {
+    local dev="$1"
+    local status=$(hdparm -C "$dev" | grep -oPi 'drive state is: *\K.*')
+    V "Status of $1: $status"
+    [[ $status =~ (standby|sleeping) ]] && return 0 || return 1
+}
+
+log() {
+    local mess="$(date +'%Y-%m-%d.%T') $1 awake, scanned $2"
+    V "$mess"
+    echo "$mess" >>/var/log/updatedb-nowake.log
+}
+
+main
