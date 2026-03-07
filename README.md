@@ -76,9 +76,7 @@ All functions take the storage file as first argument, and optionally (it defaul
 
 Two file formats are managed (caveat: functions for one cannot handle the other):
 
-- `meta-read` *{filename}* *[arrayname]*
-  `meta-write` *{filename}* *[arrayname]*
-  Manage a tolerant, human-friendly format of "key, values" that can be written as `key: value` or `key value`, with any numer of spaces or tabs before value. Value can contain newlines, that start a new line or in the file, but prefixed by a single colon `:` or space with no extra spaces added. A good format for human-edited config files, similar to the mail headers format.
+- `meta-read` *{filename}* *[arrayname]* <br>`meta-write` *{filename}* *[arrayname]* <br>Manage a tolerant, human-friendly format of "key, values" that can be written as `key: value` or `key value`, with any numer of spaces or tabs before value. Value can contain newlines, that start a new line or in the file, but prefixed by a single colon `:` or space with no extra spaces added. A good format for human-edited config files, similar to the mail headers format.
   Example with two entries, from and to, with to having a multi-line value
   
   ```
@@ -88,12 +86,10 @@ Two file formats are managed (caveat: functions for one cannot handle the other)
    gee
   ```
   
-  See more examples in the test file `tests/metadata.test`
+  See more examples in the test file `tests/metadata.test`<br>
   Note that when writing files, only the "key: value" form is used with space starting continuation lines.
 
-- `meta-read-raw` *{filename}* *[arrayname]*
-  `meta-write-raw` *{filename}* *[arrayname]*
-  Manage a "raw" efficient file format via the built-in bash primitive `declare -p`. It it is still readable and editable by hand, but less user-friendly and tolerant. Also, reading it just "sources" it, which means executing it, potentially performing dangerous actions. You should thus only use this format for data written by your code but not human beings. It is to bash what json is to python.
+- `meta-read-raw` *{filename}* *[arrayname]*<br>`meta-write-raw` *{filename}* *[arrayname]*<br>Manage a "raw" efficient file format via the built-in bash primitive `declare -p`. It it is still readable and editable by hand, but less user-friendly and tolerant. Also, reading it just "sources" it, which means executing it, potentially performing dangerous actions. You should thus only use this format for data written by your code but not human beings. It is to bash what json is to python.
   The above example metadata raw file version is thus (the name of the array in it being always "metas")
   
   ```
