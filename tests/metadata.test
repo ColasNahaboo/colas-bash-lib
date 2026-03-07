@@ -1,0 +1,55 @@
+#!/bin/bash
+# run via tewiba
+[ -n "$TEWIBA" ] || exec tewiba -v "$0"
+
+# test of functions in ../src/metadata.sh
+. ../src/metadata.sh               # load them
+
+echo '# A metadata test file
+a 1
+a-b 1 and 2
+-:  weird for a key name
+: and also second,
+ and 3rd line of data
+.dot : This value starts with a colon
+quoted: "a > b"
+# these keys with empty values wont be re-created on read
+empty
+empty-with-space
+' >$tmp.m1
+
+echo '# A metadata test file
+# these keys with empty values wont be re-created on read
+a 1
+a-b 1 and 2
+- weird for a key name
+:and also second,
+:and 3rd line of data
+.dot : This value starts with a colon
+quoted "a > b"' >$tmp.mw1
+
+TEST t1 human-format
+meta-read $tmp.m1
+[[ "${metas[a]}" == 1 ]] || TERR "[1] metas[a]='${metas[a]}'"
+meta-read $tmp.m1 mymeta
+[[ "${mymeta[a]}" == 1 ]] || TERR "[2] mymetas[a]='${mymeta[a]}'"
+meta-write $tmp.m2 mymeta
+sort $tmp.mw1 >$tmp.m1s
+sort $tmp.m2 >$tmp.m2s
+cmp -s $tmp.m1s $tmp.m2s || TERR diffs, see: meld /tmp/metar /tmp/metaw
+cp $tmp.m1s /tmp/metar
+cp $tmp.m2s /tmp/metaw
+
+TEST t2 raw-format
+declare -A metas=([a]=1 [a-b]='1 and 2')
+meta-write-raw $tmp.mr1
+unset metas m
+meta-read-raw $tmp.mr1
+[[ "${metas[a]}" == 1 ]] || TERR "[1] metas[a]='${metas[a]}'"
+[[ "${metas[a-b]}" == '1 and 2' ]] || TERR "[2] metas[a-b]='${metas[a-b]}'"
+meta-read-raw $tmp.mr1 m
+[[ "${m[a]}" == 1 ]] || TERR "[3] m[a]='${m[a]}'"
+[[ "${m[a-b]}" == '1 and 2' ]] || TERR "[4] m[a-b]='${m[a-b]}'"
+
+TEND
+

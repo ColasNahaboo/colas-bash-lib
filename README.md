@@ -5,14 +5,15 @@ This is the repository of the miscellaneous small bits of code and info I use in
 ## Scripts (in bin/)
 
 Standalone small bash scripts that do not deserve a separate repository (such as [cgibashopts](https://github.com/ColasNahaboo/cgibashopts), [rsync-incr](https://github.com/ColasNahaboo/rsync-incr), [tewiba](https://github.com/ColasNahaboo/tewiba), [irclogger](https://github.com/ColasNahaboo/irclogger), ...) can be found in `bin/`:
+
 - [firefox-sessions-backups](bin/firefox-sessions-backups) Maintains backups of the Firefox previous sessions file.
 - [function-names-allowed-chars](bin/function-names-allowed-chars) Lists the allowed chars in bash function names.
 - [updatedb-nowake](bin/updatedb-nowake) Builds updatedb databases for disks
-only if they are spinning, and the database is older than  T hours (defauklt: 23). Avoids waking up disks if not needed.
+  only if they are spinning, and the database is older than  T hours (defauklt: 23). Avoids waking up disks if not needed.
 
 ## Library (in src/)
 
-My collection of various small **bash functions** I reuse often in my bash scripts. they expect a modern bash version, I guess version 5 at least, although most should work with bash 4.3+.
+My collection of various small **bash functions** I reuse often in my bash scripts. They expect a modern bash version, I guess version 5 at least, although most should work with bash 4.3+.
 Fell free to copy and use in any of your projects or compilation of bash tools.
 
 Bigger copy-pastable functions have their own repository, such as [bashoptions](https://github.com/ColasNahaboo/bashoptions).
@@ -67,6 +68,38 @@ E.g. you can use `variable=$(regexp_nocase expression)` (functional form) or `se
   
   Forms: functional, set
 
+#### src/metadata.sh
+
+There are functions to read and write metadata, that is bash associative arrays, from and to human readable and editable text files. They are useful to parse config files and a crude but robust indexed filing system. Keys cannot contain spaces, colons or equal signs, and values cannot start with spaces but can contain anything, including newlines.
+
+All functions take the storage file as first argument, and optionally (it defaults to "metas") the name of the associative array to create from the file or write in it. Files can have blank lines and comments staring with a sharp `#` as the first character of any line.
+
+Two file formats are managed (caveat: functions for one cannot handle the other):
+
+- `meta-read` *{filename}* *[arrayname]*
+  `meta-write` *{filename}* *[arrayname]*
+  Manage a tolerant, human-friendly format of "key, values" that can be written as `key: value` or `key value`, with any numer of spaces or tabs before value. Value can contain newlines, that start a new line or in the file, but prefixed by a single colon `:` or space with no extra spaces added. A good format for human-edited config files, similar to the mail headers format.
+  Example with two entries, from and to, with to having a multi-line value
+  
+  ```
+  from myself
+  to: foo
+  :bar
+   gee
+  ```
+  
+  See more examples in the test file `tests/metadata.test`
+  Note that when writing files, only the "key: value" form is used with space starting continuation lines.
+
+- `meta-read-raw` *{filename}* *[arrayname]*
+  `meta-write-raw` *{filename}* *[arrayname]*
+  Manage a "raw" efficient file format via the built-in bash primitive `declare -p`. It it is still readable and editable by hand, but less user-friendly and tolerant. Also, reading it just "sources" it, which means executing it, potentially performing dangerous actions. You should thus only use this format for data written by your code but not human beings. It is to bash what json is to python.
+  The above example metadata raw file version is thus (the name of the array in it being always "metas")
+  
+  ```
+  declare -Ag metas=([from]="myself" [to]=$'foo\nbar\ngee' )
+  ```
+
 #### src/pptime.sh
 
 - `pptime` *{integer}*
@@ -75,6 +108,16 @@ E.g. you can use `variable=$(regexp_nocase expression)` (functional form) or `se
   The globals `pptimesep` and `ppformat` control the output format,
   E.g: with `pptimesep=' '`, `pptime 57689243` prints `27d 4h 47m 23s`, `pptime 666` prints `11 m6s`
   with `ppformat='02'`, `pptime 57689243` prints `27d04h47m23s`, `pptime 666` prints `11m06s`
+
+#### src/random_string.sh
+
+- `random_string` *{length}* *{charset}*
+  Prints on its stdout a random string of the characters in charset of length.
+  Length is a number, and defaults to 12
+  Charset is a set of characters expressed as a string of characters of ranges of characters via an hypen, e.g `a-z`. Defaults to `a-zA-Z0-9`, the alphanumeric charset of upper and lowercase letters, and digits (that is 62 chars).
+  `random_string 8 0-9A-F` thus prints a 4-byte number in hexadecimal 
+  `random_string 32 0-9A-Fa-f_-` uses a base64 notation with 2 extra chars
+  Requires the external command `dc` (aka Desk Calculator) that should be available on all linux and unix distributions.
 
 #### src/regexp_nocase.sh
 
@@ -157,5 +200,6 @@ Libraries:
 
 High-level history of changes
 
-- v1.1.0 (2025-02-02) pptime added
-- v1.0.0 (2022-02-04) First deployment, with modules: ascii, regexp_nocase, regexp_quote, trim
+- v1.2.0 2026-03-07 random_string and metadata added
+- v1.1.0 2025-02-02 pptime added
+- v1.0.0 2022-02-04 First deployment, with modules: ascii, regexp_nocase, regexp_quote, trim
