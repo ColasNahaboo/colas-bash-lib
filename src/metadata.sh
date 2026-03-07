@@ -37,7 +37,7 @@ meta-write(){
         if [[ "$key" == '#' ]]; then
             echo "$key ${value//$'\n'/$'\n'# }"
         else
-            echo "$key ${value//$'\n'/$'\n' }"
+            echo "$key: ${value//$'\n'/$'\n' }"
         fi
     done >"$file"
 }

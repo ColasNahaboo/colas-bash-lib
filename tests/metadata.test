@@ -20,13 +20,13 @@ empty-with-space
 
 echo '# A metadata test file
 # these keys with empty values wont be re-created on read
-a 1
-a-b 1 and 2
-- weird for a key name
-:and also second,
-:and 3rd line of data
-.dot : This value starts with a colon
-quoted "a > b"' >$tmp.mw1
+a: 1
+a-b: 1 and 2
+-: weird for a key name
+ and also second,
+ and 3rd line of data
+.dot: : This value starts with a colon
+quoted: "a > b"' >$tmp.mw1
 
 TEST t1 human-format
 meta-read $tmp.m1
