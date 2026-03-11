@@ -46,33 +46,55 @@ E.g. you can use `variable=$(regexp_nocase expression)` (functional form) or `se
 
 #### src/ascii.sh
 
-- `i2a` *{integer}*
-  Returns the character (string of length 1) of ascii code *{integer}*.
+- `i2a` *{integer}*\
+  Returns the character (string of length 1) of ascii code *{integer}*.\
   E.g: `i2a 65` returns `A`
   
   Forms: functional, set
 
-- `a2i` *{character}*
-  Returns the decimal ascii code (integer) of the character (string of length 1) parameter.
+- `a2i` *{character}*\
+  Returns the decimal ascii code (integer) of the character (string of length 1) parameter.\
   E.g: `a2i "A"` returns `65`
   
   Forms: functional, set
 
-- `x2a`*{hexadecimal}* Returns the character (string of length 1) of ascii code *{hexadecimal}*. 
+- `x2a`*{hexadecimal}*\
+  Returns the character (string of length 1) of ascii code *{hexadecimal}*. \
   E.g:`x2a 41`returns`A`
   
   Forms: functional, set
 
-- `a2x` *{character}* Returns the hexadecimal ascii code (integer) of the character (string of length 1) parameter.
+- `a2x` *{character}*\
+  Returns the hexadecimal ascii code (integer) of the character (string of length 1) parameter.\
   E.g: `x2i "A"` returns `41` 
   
   Forms: functional, set
+
+#### src/htmlencode.sh
+
+- `htmlencode` *{string}*\
+  Escapes the special characters `& < > ' "` to use strings in HTML documents\
+  E.g: `htmlencode '<a&b>'` prints `&lt;a&amp;b&gt;`
+  
+- `htmldecode` *{string}*\
+  The opposite of `htmlencode`\
+  E.g: `htmldecode '&lt;a&amp;b&gt;'` prints `'<a&b>'`
+
+- `urlencode` *{string}*\
+  Escapes all characters that are not letters, numbers,  hyphen, underscore, tilde, comma and dot, to use safely in URLs. Same as the linux uuencode command, but faster for small strings.\
+  E.g: `urlencode '<a&b>'` prints `%3Ca%26b%3E`
+
+- `urldecode` *{string}*\
+  The opposite of `urlencode`\
+  E.g: `urldecode '%3Ca%26b%3E'` prints `'<a&b>'`
 
 #### src/metadata.sh
 
 There are functions to read and write metadata, that is bash associative arrays, from and to human readable and editable text files. They are useful to parse config files and a crude but robust indexed filing system. Keys cannot contain spaces, colons or equal signs, and values cannot start with spaces but can contain anything, including newlines.
 
 All functions take the storage file as first argument, and optionally (it defaults to "metas") the name of the associative array to create from the file or write in it. Files can have blank lines and comments staring with a sharp `#` as the first character of any line.
+
+If the storage file does not exist, the read functions (re)set the associative array to an empty array without triggering an error, and the write functions create it.
 
 Two file formats are managed (caveat: functions for one cannot handle the other):
 
@@ -87,14 +109,47 @@ Two file formats are managed (caveat: functions for one cannot handle the other)
   ```
   
   See more examples in the test file `tests/metadata.test`<br>
-  Note that when writing files, only the "key: value" form is used with space starting continuation lines.
+  Note that when writing files, only the "key: value" form is used with space starting continuation lines. The above example will thus be saved as:
+  
+  ```
+  from: myself
+  to: foo
+   bar
+   gee
+  ```
 
-- `meta-read-raw` *{filename}* *[arrayname]*<br>`meta-write-raw` *{filename}* *[arrayname]*<br>Manage a "raw" efficient file format via the built-in bash primitive `declare -p`. It it is still readable and editable by hand, but less user-friendly and tolerant. Also, reading it just "sources" it, which means executing it, potentially performing dangerous actions. You should thus only use this format for data written by your code but not human beings. It is to bash what json is to python.
+- `meta-read-raw` *{filename}* *[arrayname]*<br>`meta-write-raw` *{filename}* *[arrayname]*<br>Manage a "raw" efficient file format via the built-in bash primitive `declare -p`. It it is still readable and editable by hand, but less user-friendly and tolerant. Also, reading it just "sources" it, which means executing it, potentially performing dangerous actions. You should thus only use this format for data written by your code but not human beings. It is to bash what json is to python. A good format for simple small "indexed databases" needs.
   The above example metadata raw file version is thus (the name of the array in it being always "metas")
   
   ```
   declare -Ag metas=([from]="myself" [to]=$'foo\nbar\ngee' )
   ```
+
+#### src/PP.sh
+- `PP` *{values}*
+- `PPT` *{variables}*
+
+These functions are useful to do primitive debugging of scripts by printing values and variable values, scalar or arrays, in a form escaping special characters.
+
+If an arg is `-t`, switches to trace mode: the following arguments will be taken as variable names whose values will be printed in a form `name=value`. `-v` (defaut) reset prints mode to normal.
+PPT is PP but starting in trace modeis: a shortcut to PP -t.
+Undefined variable are just outputted with a `!` appended to their name.
+
+Setting the variable `PPLOG` to a file makes these functions write into this file. useful for web CGI scripts or to not mess the script output.
+
+Setting the variable `PPSTD` to 2 makes  these functions write to the stderr. More generally, setting it to N writes to the file descriptor N.
+
+PPV is the low-level routine that can be redefined to print of any output device. E.g. to make PP/PPT print on stderr, define: `PPV(){ echo -n "$1" >&2;}`
+
+```
+declare -A aa; aa=([one]=x [two]='x x')
+ia=(red blue "light pink")
+x=1
+y='1&2'
+
+PP values: -t x y z aa ia
+→ values: x=1 y=1\&2 z! aa=([two]=x\ x [one]=x ) ia=(red blue light\ pink )
+```
 
 #### src/pptime.sh
 

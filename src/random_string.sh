@@ -6,5 +6,5 @@
 #          Defaults to alphanumeric
 # LC_ALL=C is mandatory to avoid unicode multibytes messing the randomness
 random_string() { 
-    LC_ALL=C tr -dc "${2:-a-zA-Z0-9}" < /dev/urandom | head -c "${1:-12}"
+    LC_ALL=C tr -dc "${2:-a-zA-Z0-9}" < /dev/urandom 2>/dev/null | head -c "${1:-12}"
 }
