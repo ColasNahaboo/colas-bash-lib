@@ -11,6 +11,19 @@ htmldecode() {
     str="${str//\&gt;/>}"; str="${str//\&lt;/<}"; echo "${str//\&amp;/\&}"
 }
 
+# Encode in the %xx form reserved characters for use in URLS
+# Reserved charachers are all non alphanumeric, or -_.~
+urlencode() {
+    local length="${#1}" i c
+    for (( i = 0; i < length; i++ )); do
+        c="${1:i:1}"
+        case $c in
+            [-_.~[:alnum:]]) echo -n "$c" ;;
+            *) printf '%%%02X' "'$c" ;;
+        esac
+    done
+}
+
 # decodes the %XX url encoding in $1, same as urlencode -d
 # but faster for small strings as pure bash
 # removes carriage returns to force unix newlines, converts + into space
@@ -28,16 +41,4 @@ urldecode() {
         fi
     done
     echo "$r"
-}
-
-# the reverse of urldecode above
-urlencode() {
-    local length="${#1}" i c
-    for (( i = 0; i < length; i++ )); do
-        c="${1:i:1}"
-        case $c in
-            [a-zA-Z0-9,.~_-]) echo -n "$c" ;;
-            *) printf '%%%02X' "'$c" ;;
-        esac
-    done
 }
