@@ -251,6 +251,7 @@ Libraries:
 
 High-level history of changes
 
+- v1.3.0 2026-03-12 added PP, urlencode, htmlencode
 - v1.2.0 2026-03-07 random_string and metadata added
 - v1.1.0 2025-02-02 pptime added
 - v1.0.0 2022-02-04 First deployment, with modules: ascii, regexp_nocase, regexp_quote, trim
