@@ -1,6 +1,6 @@
 # colas-bash-lib
 
-This is the repository of the miscellaneous small bits of code and info I use in my bash scripts. My personal bash developer toolkit.
+<img src="doc/colas-bash-lib-icon-320p.png" align="right" width="242" height="320">This is the repository of the miscellaneous small bits of code and info I use in my bash scripts. My personal bash developer toolkit.
 
 ## Scripts (in bin/)
 
