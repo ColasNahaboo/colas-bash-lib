@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # from: https://github.com/ColasNahaboo/colas-bash-lib
 # metadata are stored in memory as associative arrays key,values
 
@@ -59,9 +61,11 @@ meta-read-raw(){
         # rename the declare in a temporary file and then source it
         local tmp="/tmp/meta-raw.$$"
         sed "1s/^declare -Ag metas=/declare -Ag $metaname=/" "$file" > "$tmp"
+        # shellcheck disable=SC1090
         source "$tmp"
         rm "$tmp"
     else                        # default name is faster
+        # shellcheck disable=SC1090
         source "$file"
     fi
 }

@@ -69,6 +69,18 @@ E.g. you can use `variable=$(regexp_nocase expression)` (functional form) or `se
   E.g: `x2i "A"` returns `41` 
   
   Forms: functional, set
+  
+#### src/clipboard.sh
+
+Functions to copy to/from the clipboard, working transparently in X11 or Wayland.
+On X11 uses xclip or xsel, on Wayland, uses the wl-clipboard tools: wl-copy & wl-paste
+
+- `clipboard-copy` *{string}*\
+  Copies the string into the clipboard
+
+- `clipboard-paste`\
+  Prints the clipboard onto the standard output
+
 
 #### src/htmlencode.sh
 
@@ -203,6 +215,21 @@ Only in "set" form:
   As `set_regexp_quote`, but the quoted regular expression is appended to the string already in *variable*._Convenient when building a regular expression piece by piece.
 - `add_regexp_quot_nocase`*{variable} {expression}* 
   As`add_regexp_quote` above, but the appended regular expression is made case-independent.
+
+#### src/slugify.sh
+
+- `slugify` *{string}*
+  Prints the [slug](https://en.wikipedia.org/wiki/Clean_URL#Slug) version of thge string. A slug is made by using only the digits or lowercase letters with accents removed of the string, all the substrings composed of other characters replaced by an hyphen. It needs the `iconv` command.\
+  E.g: `slugify "L'haïku sécha près du bûtô, où le maçon bâilla.pdf" → l-haiku-secha-pres-du-buto-ou-le-macon-bailla-pdf`
+  
+- `slugify-latin` *{string}*
+  Same as above, but in pure bash, so it has no dependencies to `iconv`, butr only works for the common accented Latin characters in the western european languages.
+
+#### src/trim.sh
+
+- `trim` *{string}*
+  Removes the spaces or tabs at the start and end of the *{string}* argument and returns it
+  
 
 #### src/trim.sh
 

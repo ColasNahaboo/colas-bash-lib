@@ -1,3 +1,5 @@
+#!/bin/bash
+
 ############ PP print-debugging
 # Crude debugging: prints args to logfile "$PPLOG", (empty = stdout)
 # If an arg is -t, switch to trace mode: the following arguments will be
@@ -12,9 +14,14 @@
 # Uncomment the line below to redirect PP functions to stderr
 # export PPSTD=2
 
-# The user-level functions: PPT & PP
-PPT(){ PP -t "$@";}
-PP(){
+# To disable these functions (e.g. in beta testing):
+# PP(){ :;};PPT(){ :;};PPQ(){ :;};PPN(){ :;};
+
+# The user-level functions: PP PPT PPQ PPN
+PPT(){ PP -t "$@";}              # trace variables
+PPQ(){ PPV "$(printf %q "$1")";} # convenience: PPV quoting its argument
+PPN(){ PPV "$1"$'\n';}           # convenience: PPV with terminating newline
+PP(){                            # 
     local _arg _mode _info _sep
     local -
     for _arg in "$@"; do
@@ -24,11 +31,11 @@ PP(){
         esac
         PPV "$_sep"
         if [[ "$_mode" == t ]]; then
-            local __desc=$(declare -p "$_arg" 2>/dev/null)
+            local __desc; __desc=$(declare -p "$_arg" 2>/dev/null)
             if [[ -z "$__desc" ]]; then
                 PPV "$_arg!"
             else
-                local __attr=$(echo "$__desc" | cut -d' ' -f2 | sed 's/-//')
+                local __attr;__attr=$(echo "$__desc"|cut -d' ' -f2|sed 's/-//')
                 # If no flag was found, it's a scalar
                 case "$__attr" in
                     A) PPV "$_arg=("; PPAA "$_arg"; PPV ')';;
@@ -37,7 +44,7 @@ PP(){
                 esac
             fi
         else
-            PPQ "$_arg"
+            PPV "$_arg"
         fi
         _sep=' '
     done
@@ -67,7 +74,3 @@ PPIA() {
         PPQ "${_array[val]}"; PPV ' '
     done
 }
-# convenience: PPV with terminating newline
-PPN(){ PPV "$1"$'\n';}
-# convenience: PPV quoting its argument
-PPQ(){ PPV "$(printf %q "$1")";}

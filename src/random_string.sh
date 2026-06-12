@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # from: https://github.com/ColasNahaboo/colas-bash-lib
 # REQUIRES: dc
 # returns a random alphanumeric string of N chars, non-nl-terminated

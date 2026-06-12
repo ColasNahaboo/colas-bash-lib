@@ -1,3 +1,4 @@
+#!/bin/bash
 # escape special chars & < > " ' for using strings in HTML
 # pure bash
 htmlencode() {
@@ -32,7 +33,7 @@ urldecode() {
     while [ -n "$v" ]; do
         if [[ $v =~ ^([^%]*)%([0-9a-fA-F][0-9a-fA-F])(.*)$ ]]; then
             eval d="\$'\x${BASH_REMATCH[2]}'"
-	    [ "$d" = "$cr" ] && d=
+	    [ "$d" = $'\r' ] && d=
             r="$r${BASH_REMATCH[1]}$d"
             v="${BASH_REMATCH[3]}"
         else
