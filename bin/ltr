@@ -1,0 +1,23 @@
+#!/bin/bash
+# ltr = sort by time, ltrs = sort by size
+
+opts=
+while [ "x${1:0:1}" = x- ]; do opts="$opts $1"; shift; done
+
+if [[ $0 =~ s$ ]]; then
+    find ${*:-.} $opts -type f -printf '%TY-%Tm-%Td.%THh%TM:%TS %kK %h/%f\n' |
+        sed -e 's| [.]/| |' | sort -n -k 2 |
+        sed -re 's/:[0-9]{2}[.][0-9]*//' \
+            -e 's/ ([0-9]{1,})[0-9]{6}K / \1G /' \
+            -e 's/ ([0-9]{1,})[0-9]{3}K / \1M /' \
+            -e 's/ ([0-9][KGM]) /   \1 /' \
+            -e 's/ ([0-9]{2}[KGM]) /  \1 /'
+else
+    find ${*:-.} $opts -type f -printf '%TY-%Tm-%Td.%THh%TM:%TS %kK %h/%f\n' |
+        sed -e 's| [.]/| |' | sort |
+        sed -re 's/:[0-9]{2}[.][0-9]*//' \
+            -e 's/ ([0-9]{1,})[0-9]{6}K / \1G /' \
+            -e 's/ ([0-9]{1,})[0-9]{3}K / \1M /' \
+            -e 's/ ([0-9][KGM]) /   \1 /' \
+            -e 's/ ([0-9]{2}[KGM]) /  \1 /'
+fi

@@ -4,10 +4,15 @@
 
 ## Scripts (in bin/)
 
-Standalone small bash scripts that do not deserve a separate repository (such as [cgibashopts](https://github.com/ColasNahaboo/cgibashopts), [rsync-incr](https://github.com/ColasNahaboo/rsync-incr), [tewiba](https://github.com/ColasNahaboo/tewiba), [irclogger](https://github.com/ColasNahaboo/irclogger), ...) can be found in `bin/`:
+Standalone small bash scripts that do not deserve a separate repository (unlike [cgibashopts](https://github.com/ColasNahaboo/cgibashopts), [rsync-incr](https://github.com/ColasNahaboo/rsync-incr), [tewiba](https://github.com/ColasNahaboo/tewiba), [irclogger](https://github.com/ColasNahaboo/irclogger), ...) can be found in `bin/`:
 
 - [firefox-sessions-backups](bin/firefox-sessions-backups) Maintains backups of the Firefox previous sessions file.
 - [function-names-allowed-chars](bin/function-names-allowed-chars) Lists the allowed chars in bash function names.
+- [ltr and lts](bin/ltr) recursively lists all files in directories, with their modification dates and human-readable sizes. Ultra fast, and immensely useful. Install `ltr`, then make `lts` a symlink to it: \
+  `cp bin/ltr /usr/local/bin && ln -sf ltr /usr/local/bin/lts`
+  - `ltr` sorts by date, most recent last.
+  - `lts` sorts by size, biggest last.
+  
 - [updatedb-nowake](bin/updatedb-nowake) Builds updatedb databases for disks
   only if they are spinning, and the database is older than  T hours (defauklt: 23). Avoids waking up disks if not needed.
 
