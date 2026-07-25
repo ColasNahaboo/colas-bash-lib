@@ -12,9 +12,12 @@ Standalone small bash scripts that do not deserve a separate repository (unlike 
   `cp bin/ltr /usr/local/bin && ln -sf ltr /usr/local/bin/lts`
   - `ltr` sorts by date, most recent last.
   - `lts` sorts by size, biggest last.
-  
 - [updatedb-nowake](bin/updatedb-nowake) Builds updatedb databases for disks
   only if they are spinning, and the database is older than  T hours (defauklt: 23). Avoids waking up disks if not needed.
+- [x-workspace-switcher](bin/x-workspace-switcher) Pops up a menu of workspace names to switch to; with an argument, renames the current workspace. Works on X11 and should work onWayland (but untested). Simple and fast, no fancy graphics.
+  - Requires [rofi](https://github.com/davatorium/rofi)
+  - For each workspace, lists the set of classes of windows present in it
+  - In the menu, navigate to the workspace by the up/down arrows or incremental search, and hit Enter. Or just hit the corresponding function key: F6 to go to workspace 6.  
 
 ## Library (in src/)
 
