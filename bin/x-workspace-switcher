@@ -3,13 +3,7 @@
 die() { echo "$@" >&2; exit 1; }
 
 # --- backend detection ---
-if [[ -n $WAYLAND_DISPLAY ]]; then
-    backend=wayland
-elif [[ -n $DISPLAY ]]; then
-    backend=x11
-else
-    die "No display found"
-fi
+[[ -n $DISPLAY ]] || die "No display found"
 
 # --- X11 desktops ---
 # stdout: tab-separated index, marker (*/-), name
@@ -117,36 +111,9 @@ x11_rename() {
     esac
 }
 
-# --- Wayland ---
-wayland_switch() {
-    if command -v swaymsg &>/dev/null; then
-        local -a names
-        readarray -t names < <(swaymsg -t get_workspaces -r 2>/dev/null | jq -r '.[].name')
-        local selection width=24
-        for name in "${names[@]}"; do
-            ((${#name} > width)) && width=${#name}
-        done
-        selection=$(popup_menu "Switch workspace" "$width" "${names[@]}") || exit 0
-        [[ -n $selection ]] && swaymsg workspace "$selection" >/dev/null 2>&1
-    else
-        die "Wayland: only Sway is supported"
-    fi
-}
-
-wayland_rename() {
-    command -v swaymsg &>/dev/null || die "Wayland: only Sway is supported"
-    swaymsg rename workspace to "$*" >/dev/null 2>&1
-}
-
 # --- main ---
 if [[ $# -gt 0 ]]; then
-    case $backend in
-        x11) x11_rename "$@" ;;
-        wayland) wayland_rename "$@" ;;
-    esac
+    x11_rename "$@"
 else
-    case $backend in
-        x11) x11_switch ;;
-        wayland) wayland_switch ;;
-    esac
+    x11_switch
 fi
