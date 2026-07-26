@@ -19,6 +19,7 @@ Standalone small bash scripts that do not deserve a separate repository (unlike 
   - For each workspace, lists the set of classes of windows present in it
   - In the menu, navigate to the workspace by the up/down arrows or incremental search, and hit Enter. Or just hit the corresponding function key: F6 to go to workspace 6.
   - Rofi color scheme can be changed by `rofi-theme-selector`
+  - Workspace renaming on some desktop or window managers may require extra packages: `i3-wm bspwm plasma-workspace python3-xlib`
 
 ## Library (in src/)
 

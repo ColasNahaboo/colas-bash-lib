@@ -79,36 +79,118 @@ padto(){
     ((l > 0)) && echo "${spaces:0:$l}" || echo -n
 }
 
-# --- X11 rename ---
-x11_rename() {
-    local new_name=$*
-    declare -a names=()
-    local current_idx
-
-    while IFS=$'\t' read -r idx mark name; do
-        names[idx]=$name
-        [[ $mark == '*' ]] && current_idx=$idx
-    done < <(x11_desktops)
-
-    [[ -z $current_idx ]] && die "Could not determine current workspace"
-
-    names[current_idx]=$new_name
-
-    local wm_name
-    wm_name=$(wmctrl -m 2>/dev/null | awk -F': ' '/^Name:/ {print $2}')
-
-    case $wm_name in
-        Xfwm4)
-            command -v xfconf-query &>/dev/null || die "xfconf-query not found"
-            local -a xf_args=()
-            for n in "${names[@]}"; do
-                xf_args+=(-t string -s "$n")
-            done
-            xfconf-query -c xfwm4 -p /general/workspace_names "${xf_args[@]}" 2>&1
-            ;;
+# --- WM detection ---
+wm_detect() {
+    local wm
+    wm=$(wmctrl -m 2>/dev/null | awk -F': ' '/^Name:/ {print $2}')
+    case $wm in
+        Xfwm4)                 echo "xfce" ;;
+        i3)                    echo "i3" ;;
+        bspwm|Bspwm)           echo "bspwm" ;;
+        Mutter|"GNOME Shell")  echo "gnome" ;;
+        KWin)                  echo "kde" ;;
         *)
-            die "Workspace rename not supported for WM: ${wm_name:-unknown}"
-            ;;
+            [[ $XDG_CURRENT_DESKTOP =~ GNOME ]] && { echo "gnome"; return; }
+            [[ $XDG_CURRENT_DESKTOP =~ KDE ]]   && { echo "kde"; return; }
+            echo "$wm" ;;
+    esac
+}
+
+# --- per-WM workspace rename ---
+
+_ws_names_and_index() {
+    declare -ga WSN=()
+    WSN_IDX=""
+    while IFS=$'\t' read -r idx mark name; do
+        WSN[idx]=$name
+        [[ $mark == '*' ]] && WSN_IDX=$idx
+    done < <(x11_desktops)
+}
+
+xfce_rename() {
+    local new_name=$*
+    _ws_names_and_index
+    [[ -z $WSN_IDX ]] && die "Could not determine current workspace"
+    WSN[WSN_IDX]=$new_name
+    command -v xfconf-query &>/dev/null || die "xfconf-query not found"
+    local -a args=()
+    for n in "${WSN[@]}"; do args+=(-t string -s "$n"); done
+    xfconf-query -c xfwm4 -p /general/workspace_names "${args[@]}" 2>&1
+}
+
+i3_rename() {
+    command -v i3-msg &>/dev/null || die "i3-msg not found"
+    i3-msg "rename workspace to \"$*\""
+}
+
+bspwm_rename() {
+    command -v bspc &>/dev/null || die "bspc not found"
+    bspc desktop -n "$*"
+}
+
+gnome_rename() {
+    command -v gsettings &>/dev/null || die "gsettings not found"
+    python3 - "$@" <<'PYEOF'
+import subprocess, json, sys
+new_name = sys.argv[1]
+out = subprocess.check_output(['gsettings', 'get',
+    'org.gnome.desktop.wm.preferences', 'workspace-names'])
+names = eval(out)  # gsettings outputs Python list syntax
+idx_out = subprocess.check_output(['xprop', '-root', '_NET_CURRENT_DESKTOP'])
+idx = int(idx_out.decode().strip().split()[-1])
+if idx < len(names):
+    names[idx] = new_name
+subprocess.run(['gsettings', 'set',
+    'org.gnome.desktop.wm.preferences', 'workspace-names',
+    json.dumps(names, ensure_ascii=False)])
+PYEOF
+}
+
+kde_rename() {
+    local new_name=$* idx
+    idx=$(xprop -root _NET_CURRENT_DESKTOP 2>/dev/null | awk '{print $NF}')
+    [[ -z $idx ]] && die "Could not determine current workspace"
+    local cfg=kwriteconfig5
+    command -v kwriteconfig6 &>/dev/null && cfg=kwriteconfig6
+    command -v "$cfg" &>/dev/null || die "$cfg not found"
+    command -v qdbus &>/dev/null || die "qdbus not found"
+    "$cfg" --file kwinrc --group Desktops --key "Name_$idx" "$new_name"
+    qdbus org.kde.KWin /KWin reconfigure 2>/dev/null || true
+}
+
+ewmh_rename() {
+    /usr/bin/python3 - "$@" <<'PYEOF'
+import sys
+from Xlib import X, display
+new_name = sys.argv[1]
+d = display.Display()
+root = d.screen().root
+cur = root.get_full_property(d.intern_atom('_NET_CURRENT_DESKTOP'), X.AnyPropertyType)
+if cur is None:
+    sys.exit(1)
+cur_idx = cur.value[0]
+names_p = root.get_full_property(d.intern_atom('_NET_DESKTOP_NAMES'), X.AnyPropertyType)
+if names_p is None:
+    sys.exit(1)
+names = names_p.value.decode('utf-8', errors='replace').split('\x00')[:-1]
+if cur_idx < len(names):
+    names[cur_idx] = new_name
+raw = ('\x00'.join(names) + '\x00').encode('utf-8')
+root.change_property(d.intern_atom('_NET_DESKTOP_NAMES'),
+    d.intern_atom('UTF8_STRING'), 8, raw)
+d.sync()
+PYEOF
+}
+
+# --- X11 rename dispatch ---
+x11_rename() {
+    case $(wm_detect) in
+        xfce)   xfce_rename "$@" ;;
+        i3)     i3_rename "$@" ;;
+        bspwm)  bspwm_rename "$@" ;;
+        gnome)  gnome_rename "$@" ;;
+        kde)    kde_rename "$@" ;;
+        *)      ewmh_rename "$@" ;;
     esac
 }
 
