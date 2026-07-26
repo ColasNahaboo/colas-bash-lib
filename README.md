@@ -14,7 +14,7 @@ Standalone small bash scripts that do not deserve a separate repository (unlike 
   - `lts` sorts by size, biggest last.
 - [updatedb-nowake](bin/updatedb-nowake) Builds updatedb databases for disks
   only if they are spinning, and the database is older than  T hours (defauklt: 23). Avoids waking up disks if not needed.
-- [x-workspace-switcher](bin/x-workspace-switcher) Pops up a menu of workspace names to switch to; with an argument, renames the current workspace. Works on X11 only, as there is no support of Workspaces in Wayland, each compositor implement its own incompatible API, as always with this braindead system..
+- [x-workspace-switcher](bin/x-workspace-switcher) Pops up a menu of workspace names to switch to; with an argument, renames the current workspace. Works on X11 only, as there is no support of Workspaces in Wayland, each compositor implement its own incompatible system and API, as always with this braindead Wayland. Save your sanity, use X11.
   - Requires [rofi](https://github.com/davatorium/rofi)
   - For each workspace, lists the set of classes of windows present in it
   - In the menu, navigate to the workspace by the up/down arrows or incremental search, and hit Enter. Or just hit the corresponding function key: F6 to go to workspace 6.

@@ -29,9 +29,10 @@ x11_window_classes() {
 # --- popup menu ---
 popup_menu() {
     local title=$1 width=$(( ($2 * 5) / 2))
+    local curidx=$(xprop -root _NET_CURRENT_DESKTOP| awk '{print $NF}')
     local -a items=("${@:3}")
     printf '%s\n' "${items[@]}" |
-        rofi -dmenu -markup -markup-rows \
+        rofi -dmenu -markup -markup-rows -selected-row ${curidx:-0} \
              -p "$title" -i -no-custom \
              -theme-str "element-text { font: \"Monospace 32\"; } window { width: ${width}ch; } listview { fixed-height: false; dynamic: true; lines: 20; }" \
              -kb-custom-1 "F1" -kb-custom-2 "F2" -kb-custom-3 "F3" \
@@ -43,7 +44,7 @@ popup_menu() {
 
 # --- X11 switch ---
 x11_switch() {
-    local maxwidth=8
+    local  maxwidth=8
     declare -a items=()
     while IFS=$'\t' read -r idx mark name; do
         local classes display width line
@@ -112,6 +113,7 @@ x11_rename() {
 }
 
 # --- main ---
+
 if [[ $# -gt 0 ]]; then
     x11_rename "$@"
 else
