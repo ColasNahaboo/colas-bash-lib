@@ -7,6 +7,7 @@
 Standalone small bash scripts that do not deserve a separate repository (unlike [cgibashopts](https://github.com/ColasNahaboo/cgibashopts), [rsync-incr](https://github.com/ColasNahaboo/rsync-incr), [tewiba](https://github.com/ColasNahaboo/tewiba), [irclogger](https://github.com/ColasNahaboo/irclogger), ...) can be found in `bin/`:
 
 - [firefox-sessions-backups](bin/firefox-sessions-backups) Maintains backups of the Firefox previous sessions file.
+- [follow-symlinks](bin/follow-symlinks) Traces and expands all symlinks recursively for the given files, showing mount points and dangling links. Output is human-readable: `->` symlink, `=>` final target, `=` normalized path, `Mount:` filesystem boundary, `*** File not found:` broken links.
 - [function-names-allowed-chars](bin/function-names-allowed-chars) Lists the allowed chars in bash function names.
 - [ltr and lts](bin/ltr) recursively lists all files in directories, with their modification dates and human-readable sizes. Ultra fast, and immensely useful. Install `ltr`, then make `lts` a symlink to it: \
   `cp bin/ltr /usr/local/bin && ln -sf ltr /usr/local/bin/lts`

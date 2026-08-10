@@ -1,0 +1,145 @@
+#!/bin/bash
+USAGE='follow-symlinks files...
+print all links pointed to by files if they are symbolic links
+traces and expands all links recursively, and show mount points
+  ## displays the file worked on (a title)
+  -> means symbolic link to
+  =  means normalized to (/a/b/../c = /a/c)
+  Mount:   lists mount point as they change
+  => indicates final expansed file/dir
+Dangling links (to non existing files) are shown as  "*** File not found:",
+as well as the missing directory that caused it, if any.
+The output is meant for human consumption, and tries to not repeat things.
+
+(c) 2021 Colas Nahaboo, under MIT License https://mit-license.org/
+Source: https://github.com/ColasNahaboo/colas-bash-lib/bin/follow-symlinks'
+
+# Any option, or no args? ==> usage
+if [[ $1 =~ ^- ]] || [ -z "$1" ]; then
+    echo "USAGE: $USAGE"; exit 1
+fi
+
+# constants
+export nl=$'\n'
+
+# globals
+export mount=
+export mount_prev=
+export link_target=
+
+# follow the file arg and prints symlinks and mount points found along the way
+follow-link(){
+    local path="$1"
+    local dir rest file printed real
+    mount=; mount_prev=;
+    
+    [[ $path != /* ]] && path="$PWD/$path"
+    echo "## $path"
+    verif-path
+    test-link "$path"
+    path="$link_target"
+    verif-path
+    real=$(realpath -- "$path" 2>/dev/null) # to know we have found destination
+    
+    # examine all path components for symlinks, starting from end
+    while [[ $path =~ ^(.*)/([^/]+)$ ]]; do
+        dir="${BASH_REMATCH[1]}"
+        file="${BASH_REMATCH[2]}"
+        rest="$file${rest:+/}$rest"
+        if test-link "$dir"; then
+            dir="$link_target"
+            path="$dir/$rest"
+            # avoid printing both -> foo and => foo
+            if [ -n "$rest" ]; then
+                if [ "$path" = "$real" ]; then 
+                    echo "  => $path"
+                else 
+                    echo "  -> $path"
+                fi
+                printed="$path"
+            fi
+            rest=
+            verif-path
+        else
+            path="$dir"
+            [ -n "$dir" ] && verif-path partial
+        fi
+    done
+    
+    local final_target="$dir${rest:+/}$rest"
+    [ "$final_target" != "$printed" ] && echo "  => $final_target"
+}
+
+# if path argument is a symlink, prints it and sets link_target to its target
+# return true if we dereferenced a link
+test-link(){
+    local path="$1"
+    if [ -L "$path" ]; then
+        stat -c '  %N' -- "$path" 2>/dev/null
+        # Use readlink directly to safely retrieve target without subshell greps
+        link_target=$(readlink -- "$path")
+        if [[ $link_target != /* ]]; then
+            local parent_dir="${path%/*}"
+            [[ -z "$parent_dir" ]] && parent_dir="/"
+            link_target="${parent_dir%/}/$link_target"
+        fi
+        return 0
+    else
+        link_target="$path"
+        return 1
+    fi
+}
+
+# normalize the path: /../, /./, */, and check that a path exists
+# less verbose when verifying partial paths
+verif-path(){
+    local partial="$1"          # non nil ==> partial path
+    local pathorig="$path" cause
+
+    # Optimized string cleanup using native Bash substitutions
+    while [[ $path == *"//"* ]]; do path="${path//\/\//\/}"; done
+    while [[ $path == *"/./"* ]]; do path="${path//\/\.\//\/}"; done
+    path="${path%"/."}"
+    while [[ $path == *"/" && ${#path} -gt 1 ]]; do path="${path%"/"}"; done
+
+    while [[ $path =~ ^(.*)/[^/]+/\.\.(/.*|$) ]]; do
+        local head="${BASH_REMATCH[1]}"
+        local tail="${BASH_REMATCH[2]}"
+        path="${head:-/}${tail}"
+    done
+
+    if [ -z "$partial" ]; then
+        [ "$path" != "$pathorig" ] && echo "  =  $path"
+        if [ ! -h "$path" ] && [ ! -e "$path" ]; then
+            cause=$(notfound-cause "$path")
+            echo "  *** File not found: $path$cause"
+        fi
+        mount=$(stat -c '%m' -- "$path" 2>/dev/null)
+        if [ -n "$mount" ] && [ "$mount" != "$mount_prev" ]; then
+            echo "  Mount: $mount"
+            mount_prev="$mount"
+        fi
+    fi
+}
+
+# for a non-existing path, find the cause (uppermost non-existing dir)
+# and outputs it, or nothing if all dirs exist
+notfound-cause(){
+    local path="$1"
+    local prefix="" part
+    local -a parts
+    
+    # Fast path decomposition using native array splitting instead of regex loop
+    IFS='/' read -ra parts <<< "$path"
+    for part in "${parts[@]}"; do
+        [[ -z "$part" ]] && continue
+        prefix="$prefix/$part"
+        if [ ! -e "$prefix" ] && [ ! -h "$prefix" ]; then
+            echo "${nl}      Because in missing directory: $prefix"
+            return
+        fi
+    done
+}
+
+# main loop: perform a follow-link on all args
+for p in "$@"; do follow-link "$p"; done
