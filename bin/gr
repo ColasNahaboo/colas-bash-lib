@@ -4,22 +4,20 @@
 # you can add other "marks" in $GR_MARKS, e.g:
 #   export GR_MARKS='svn cvs bzr fossil vscode env'
 # ugrep lines are --option=value without the --
+set -euo pipefail
 
 orig="$PWD"
 d="$PWD"
-found=false
 while [[ -n "$d" ]]; do
-    for mark in gr ugrep git hg jj $GR_MARKS; do
+    for mark in gr ugrep git hg jj ${GR_MARKS:-}; do
         if [[ -e "$d/.$mark" ]]; then
             cd "$d" || exit 1
-            found=true
-            break
+            break 2
         fi
     done
-    $found && break
     d="${d%/*}"
 done
 
 # This precise header is needed so that emacs is not confused
 [[ "$PWD" != "$orig" ]] && echo "gr: Entering directory \`$PWD'"
-ug -n -k -I --format="%f:%n:%k:%O%~" --color=never "$@"
+ug -r -I --format="%f:%n:%k:%O%~" --color=never "$@"

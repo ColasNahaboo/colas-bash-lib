@@ -1,0 +1,27 @@
+#!/bin/bash
+# run via tewiba
+[ -n "$TEWIBA" ] || exec tewiba -v "$0"
+
+# test of the bin/gr script: recursive ugrep from the nearest mark dir
+GR=$(realpath ../bin/gr)
+
+TD=$(mktemp -d)
+trap 'rm -rf "$TD"' EXIT
+mkdir -p "$TD/repo/sub"
+touch "$TD/repo/.git"
+echo "hello world" > "$TD/repo/f.txt"
+
+TEST gr
+# walks up to the .git mark dir and searches recursively, from a subdir
+DOTEST -O 'f\.txt:1:1:hello world' bash -c "cd '$TD/repo/sub' && '$GR' hello"
+# no match: exit status 1, propagated from ug
+DOTEST -s 1 bash -c "cd '$TD/repo/sub' && '$GR' zzzz"
+# already in the mark dir: no "Entering directory" header, exact output
+DOTEST -o 'f.txt:1:1:hello world' bash -c "cd '$TD/repo' && '$GR' hello"
+# custom marks via GR_MARKS
+mkdir -p "$TD/repo3/sub3"
+touch "$TD/repo3/.foo"
+echo "hi foo" > "$TD/repo3/f.txt"
+DOTEST -O 'f\.txt:1:1:hi foo' bash -c "cd '$TD/repo3/sub3' && GR_MARKS=foo '$GR' hi"
+
+TEND
