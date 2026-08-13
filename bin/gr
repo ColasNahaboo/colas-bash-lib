@@ -1,0 +1,25 @@
+#!/bin/bash
+# shellcheck disable=SC1090,SC2155 # source files, declare&assign
+# performs an ug from the point with a .gr .ugrep .git .hg or .svn
+# you can add other "marks" in $GR_MARKS, e.g:
+#   export GR_MARKS='svn cvs bzr fossil vscode env'
+# ugrep lines are --option=value without the --
+
+orig="$PWD"
+d="$PWD"
+found=false
+while [[ -n "$d" ]]; do
+    for mark in gr ugrep git hg jj $GR_MARKS; do
+        if [[ -e "$d/.$mark" ]]; then
+            cd "$d" || exit 1
+            found=true
+            break
+        fi
+    done
+    $found && break
+    d="${d%/*}"
+done
+
+# This precise header is needed so that emacs is not confused
+[[ "$PWD" != "$orig" ]] && echo "gr: Entering directory \`$PWD'"
+ug -n -k -I --format="%f:%n:%k:%O%~" --color=never "$@"
