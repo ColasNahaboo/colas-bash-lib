@@ -40,6 +40,53 @@ cmp -s $tmp.m1s $tmp.m2s || TERR diffs, see: meld /tmp/metar /tmp/metaw
 cp $tmp.m1s /tmp/metar
 cp $tmp.m2s /tmp/metaw
 
+TEST t1b default array name
+meta-write $tmp.m3
+sort $tmp.m3 >$tmp.m3s
+cmp -s $tmp.m1s $tmp.m3s || TERR "[1] meta-write without array name differs from named write"
+declare -A dflt=([a]=1)
+meta-write-raw $tmp.mrd dflt
+meta-read-raw $tmp.mrd
+[[ "${metas[a]}" == 1 ]] || TERR "[2] meta-read-raw without array name: metas[a]='${metas[a]}'"
+
+TEST t1c human-format edge cases
+printf '#nospace comment\n' >$tmp.m4
+meta-read $tmp.m4 m4
+[[ "${m4[#]}" == "nospace comment" && ${#m4[@]} == 1 ]] ||
+    TERR "[1] '#nospace' not collapsed as comment: m4[#]='${m4[#]}'"
+printf 'k1\tv1\n' >$tmp.m5
+meta-read $tmp.m5 m5
+[[ "${m5[k1]}" == v1 ]] || TERR "[2] tab separator: m5[k1]='${m5[k1]}'"
+printf 'k v\n\n\nk2 v2\n' >$tmp.m6
+meta-read $tmp.m6 m6
+[[ "${m6[k2]}" == v2 ]] || TERR "[3] blank lines: m6[k2]='${m6[k2]}'"
+printf 'k v\nline without separator\nk2 v2\n' >$tmp.m7
+meta-read $tmp.m7 m7
+[[ "${m7[line]}" == "without separator" && ${#m7[@]} == 3 ]] ||
+    TERR "[4] 'key value' with multiword value: m7 has ${#m7[@]} keys, line='${m7[line]}'"
+meta-reset m8; m8[keep]=1
+meta-read /nonexistent-dir/nope m8
+[[ ${#m8[@]} == 0 ]] || TERR "[5] missing file should reset array, ${#m8[@]} keys left"
+
+TEST t1d orphan continuation lines
+printf '# c1\n cont1\n# c2\n cont2\nk v\n' >$tmp.m8
+meta-read $tmp.m8 m8d || TERR "[1] status non-zero"
+[[ "${m8d[#]}" == $'c1\ncont1\nc2\ncont2' ]] ||
+    TERR "[2] m8d[#]='${m8d[#]}'"
+printf ' cont-before-any-key\nk v\n' >$tmp.m9
+meta-read $tmp.m9 m9 || TERR "[3] status non-zero"
+[[ "${m9[#]}" == "cont-before-any-key" ]] ||
+    TERR "[4] m9[#]='${m9[#]}'"
+
+TEST t1e keys with equal sign
+printf 'k=v val\nk2 v2\n' >$tmp.m10
+meta-read $tmp.m10 m10 2>"$tmp.m10err"; st=$?
+err=$(<"$tmp.m10err")
+[[ $st != 0 ]] || TERR "[1] should fail on key with '='"
+[[ $err == *k=v* ]] || TERR "[2] error should name the line: '$err'"
+[[ ${m10[k2]+x} && ! ${m10[k=v]+x} ]] ||
+    TERR "[3] bad key not skipped: $(declare -p m10)"
+
 TEST t2 raw-format
 declare -A metas=([a]=1 [a-b]='1 and 2')
 meta-write-raw $tmp.mr1
@@ -50,6 +97,20 @@ meta-read-raw $tmp.mr1
 meta-read-raw $tmp.mr1 m
 [[ "${m[a]}" == 1 ]] || TERR "[3] m[a]='${m[a]}'"
 [[ "${m[a-b]}" == '1 and 2' ]] || TERR "[4] m[a-b]='${m[a-b]}'"
+
+TEST t2b raw-format edge cases
+meta-reset e; meta-write-raw $tmp.r2 e
+meta-read-raw $tmp.r2 e2 || TERR "[1] empty array roundtrip status non-zero"
+[[ ${#e2[@]} == 0 ]] || TERR "[2] empty array not empty: $(declare -p e2)"
+meta-reset r; r[q]="it's" r[m]=$'multi\nline' r[d]='quote"dq' r[emp]=""
+meta-write-raw $tmp.r3 r
+meta-read-raw $tmp.r3 r2 || TERR "[3] special chars roundtrip status non-zero"
+[[ "${r2[q]}" == "it's" ]] || TERR "[4] r2[q]='${r2[q]}'"
+[[ "${r2[m]}" == $'multi\nline' ]] || TERR "[5] r2[m] wrong multiline value"
+[[ "${r2[d]}" == 'quote"dq' ]] || TERR "[6] r2[d]='${r2[d]}'"
+[[ ${r2[emp]+x} && -z "${r2[emp]}" ]] || TERR "[7] r2[emp] missing or non-empty"
+meta-read-raw /nonexistent-dir/nope q1 || TERR "[8] missing file should not error"
+[[ ${#q1[@]} == 0 ]] || TERR "[9] missing file should reset array"
 
 TEND
 
