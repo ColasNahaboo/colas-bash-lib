@@ -111,6 +111,36 @@ meta-read-raw $tmp.r3 r2 || TERR "[3] special chars roundtrip status non-zero"
 [[ ${r2[emp]+x} && -z "${r2[emp]}" ]] || TERR "[7] r2[emp] missing or non-empty"
 meta-read-raw /nonexistent-dir/nope q1 || TERR "[8] missing file should not error"
 [[ ${#q1[@]} == 0 ]] || TERR "[9] missing file should reset array"
+printf "declare -Ag metas=([a]=\"1\" [b]=\$'x\\ny' )\n" >$tmp.r4
+meta-read-raw $tmp.r4 r4 || TERR "[10] hand-written raw file status non-zero"
+[[ "${r4[b]}" == $'x\ny' ]] || TERR "[11] r4[b] wrong value from hand-written file"
+
+TEST t3 more human-format semantics
+: >$tmp.e1; meta-reset z1; z1[old]=1
+meta-read $tmp.e1 z1 || TERR "[1] empty file status non-zero"
+[[ ${#z1[@]} == 0 ]] || TERR "[2] empty file should reset array"
+printf 'k v1\nk v2\n' >$tmp.e2
+meta-read $tmp.e2 z2
+[[ "${z2[k]}" == v2 && ${#z2[@]} == 1 ]] ||
+    TERR "[3] duplicate key should keep last: z2[k]='${z2[k]}' count=${#z2[@]}"
+printf 'k: a: b # not comment\n' >$tmp.e3
+meta-read $tmp.e3 z3
+[[ "${z3[k]}" == "a: b # not comment" ]] ||
+    TERR "[4] only first separator splits: z3[k]='${z3[k]}'"
+printf 'k:   v\n' >$tmp.e4
+meta-read $tmp.e4 z4
+[[ "${z4[k]}" == v ]] || TERR "[5] leading spaces in value: z4[k]='${z4[k]}'"
+printf 'k v\n:\n cont2\n' >$tmp.e5
+meta-read $tmp.e5 z5
+[[ "${z5[k]}" == $'v\n\ncont2' ]] ||
+    TERR "[6] empty continuation: z5[k]='${z5[k]}'"
+meta-reset z6; z6[k]=$'v1\n'
+meta-write $tmp.e6 z6
+meta-read $tmp.e6 z7
+[[ "${z7[k]}" == $'v1\n' ]] ||
+    TERR "[7] trailing newline in value not preserved: z7[k]='${z7[k]}'"
+meta-reset z8; meta-write $tmp.e7 z8
+[[ ! -s $tmp.e7 ]] || TERR "[8] writing empty array should create empty file"
 
 TEND
 
